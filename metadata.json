@@ -1,0 +1,7 @@
+{
+  "name": "VNPD TaskFlow - Quản lý Công việc & Giao ban",
+  "description": "Hệ thống quản lý công việc, theo dõi tiến độ kết luận họp giao ban và nhiệm vụ theo đơn vị, lãnh đạo chỉ đạo.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+
