@@ -13,6 +13,31 @@ export interface TaskNote {
   content: string;
 }
 
+export type TaskType = 'tracked_task' | 'general_directive';
+
+/**
+ * Kiểm tra xem một giá trị đơn vị chủ trì có phải là chỉ đạo chung không
+ */
+export function isGeneralDirective(dept?: string): boolean {
+  if (!dept || !dept.trim()) return true;
+  const d = dept.trim().toLowerCase();
+
+  return (
+    d === 'chỉ đạo chung' ||
+    d === 'general_directive' ||
+    d.startsWith('các ') ||
+    d.includes('các phòng') ||
+    d.includes('các nhà máy') ||
+    d.includes('các đơn vị') ||
+    d.includes('phòng, đơn vị') ||
+    d.includes('phòng và đơn vị') ||
+    d.includes('phòng và nhà máy') ||
+    d.includes('toàn công ty') ||
+    d.includes('toàn thể') ||
+    d.includes('và các')
+  );
+}
+
 export interface TaskItem {
   code: string;
   month: string;
@@ -29,6 +54,7 @@ export interface TaskItem {
   progress: number; // 0 to 100
   pageReference: string;
   priority?: 'Bình thường' | 'Quan trọng' | 'Khẩn cấp';
+  taskType?: TaskType;
   notes?: TaskNote[];
   updatedAt?: string;
 }

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 
 import { TaskItem } from '../types/task';
 
-import { processMeetingPdf } from '../services/n8nApi';
+import { processMeetingPdf, normalizeTask } from '../services/n8nApi';
 
 import { downloadJSON, downloadCSV } from '../utils/taskStorage';
 
@@ -214,73 +214,14 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
         return;
       }
 
-      const formattedTasks: TaskItem[] = parsed.map(
-        (item, idx) => ({
-          code: String(
-            item.code ||
-              `09/2026-${String(idx + 1).padStart(3, '0')}`
-          ),
-
-          month: String(
-            item.month || '09/2026'
-          ),
-
-          title: String(
-            item.title ||
-              'Thông báo kết luận họp giao ban'
-          ),
-
-          department: String(
-            item.department || 'Phòng Tổng hợp'
-          ),
-
-          itemNo:
-            Number(item.itemNo) || idx + 1,
-
-          task: String(
-            item.task || ''
-          ),
-
-          collaborators: String(
-            item.collaborators || ''
-          ),
-
-          directedBy: String(
-            item.directedBy || ''
-          ),
-
-          implementationTime: String(
-            item.implementationTime || ''
-          ),
-
-          deadline: String(
-            item.deadline || ''
-          ),
-
-          milestone: String(
-            item.milestone || ''
-          ),
-
-          status:
-            item.status || 'Chưa cập nhật',
-
-          progress:
-            Number(item.progress) || 0,
-
-          pageReference: String(
-            item.pageReference || ''
-          ),
-
-          priority:
-            item.priority,
-
-          notes:
-            Array.isArray(item.notes)
-              ? item.notes
-              : [],
-
-          updatedAt:
-            item.updatedAt,
+      const formattedTasks: TaskItem[] = parsed.map((item, idx) =>
+        normalizeTask({
+          ...item,
+          code: item.code || `09/2026-${String(idx + 1).padStart(3, '0')}`,
+          month: item.month || '09/2026',
+          title: item.title || 'Thông báo kết luận họp giao ban',
+          department: item.department || 'Phòng Tổng hợp',
+          itemNo: Number(item.itemNo) || idx + 1,
         })
       );
 

@@ -18,16 +18,20 @@ export const Header: React.FC<HeaderProps> = ({
   onResetData,
 }) => {
   return (
-    <header className="border-b border-slate-200 bg-white sticky top-0 z-30 shadow-xs">
+    <header className="border-b border-slate-200 bg-white sticky top-0 z-30 shadow-xs print:hidden">
       {/* Strict Top Bar Contract: Zone 1 (Single element wordmark) — Zone 2 (4 clean nav links) — Zone 3 (Primary actions) */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-        {/* Zone 1: Single text element Brand mark */}
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-[72px] flex items-center justify-between gap-4">
+        {/* Zone 1: Brand Logo & Title */}
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-base shadow-xs">
-            V
-          </div>
-          <a href="/" className="text-lg font-bold tracking-tight text-slate-900 whitespace-nowrap">
-            VNPD TaskFlow
+          <a href="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
+            <img
+              src="/logo.png"
+              alt="EVN Development - VNPD Logo"
+              className="h-11 sm:h-12 w-auto max-w-[280px] sm:max-w-[340px] object-contain"
+            />
+            <span className="hidden sm:inline-flex items-center text-xs font-extrabold px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 border border-blue-200/80 tracking-wide uppercase shadow-2xs">
+              TaskFlow
+            </span>
           </a>
         </div>
 

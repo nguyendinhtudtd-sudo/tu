@@ -55,6 +55,7 @@ export function downloadJSON(tasks: TaskItem[], filename = 'danh-sach-nhiem-vu-v
     status: t.status,
     progress: t.progress,
     pageReference: t.pageReference,
+    taskType: t.taskType,
     ...(t.notes && t.notes.length > 0 ? { notes: t.notes } : {})
   }));
 

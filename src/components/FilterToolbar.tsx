@@ -45,8 +45,8 @@ export const FilterToolbar: React.FC<FilterToolbarProps> = ({
   };
 
   return (
-    <div className="bg-white border-b border-slate-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
+    <div className="bg-white border-b border-slate-200 print:hidden">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           {/* Search Bar */}
           <div className="relative flex-1 min-w-[280px] max-w-lg">

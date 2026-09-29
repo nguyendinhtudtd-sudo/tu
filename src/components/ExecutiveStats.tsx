@@ -20,12 +20,12 @@ export const ExecutiveStats: React.FC<ExecutiveStatsProps> = ({ tasks, currentMo
   const averageProgress = totalTasks > 0 ? Math.round(totalProgress / totalTasks) : 0;
 
   return (
-    <div className="bg-white border-b border-slate-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
+    <div className="bg-white border-b border-slate-200 print:hidden">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <div>
             <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
-              <span>Công ty Cổ phần Thủy điện VNPD</span>
+              <span>Công ty Cổ phần Phát triển Điện lực Việt Nam (VNPD)</span>
               <span aria-hidden="true">·</span>
               <span>Kỳ giao ban tháng {currentMonth}</span>
               <span aria-hidden="true">·</span>

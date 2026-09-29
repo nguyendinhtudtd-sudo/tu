@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { TaskItem, TaskStatus, ViewMode, FilterState, TaskNote } from './types/task';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { TaskItem, TaskStatus, ViewMode, FilterState, TaskNote, isGeneralDirective, TaskType } from './types/task';
 import {
   getStoredTasks,
   saveStoredTasks,
@@ -17,27 +17,41 @@ import { ReportView } from './components/ReportView';
 import { TaskModal } from './components/TaskModal';
 import { TaskDetailDrawer } from './components/TaskDetailDrawer';
 import { ImportExportModal } from './components/ImportExportModal';
-import { getTasks, updateTask } from './services/n8nApi';
+import { getTasks, syncTaskToSheet } from './services/n8nApi';
+import { ToastContainer, useToast } from './components/Toast';
+
 export default function App() {
   const [tasks, setTasks] = useState<TaskItem[]>(() => getStoredTasks());
+  const { toasts, addToast, removeToast, removeSyncingToasts } = useToast();
+  const debounceTimers = useRef<Record<string, NodeJS.Timeout>>({});
+
   useEffect(() => {
-  const loadTasks = async () => {
-    try {
-      const remoteTasks = await getTasks();
+    const loadTasks = async () => {
+      addToast('syncing', 'Đang tải dữ liệu từ Google Sheets...');
+      try {
+        const remoteTasks = await getTasks();
+        removeSyncingToasts();
 
-      if (Array.isArray(remoteTasks) && remoteTasks.length > 0) {
-        setTasks(remoteTasks);
+        if (Array.isArray(remoteTasks) && remoteTasks.length > 0) {
+          setTasks(remoteTasks);
+          addToast('success', `Đã đồng bộ ${remoteTasks.length} nhiệm vụ từ Google Sheets`);
+        }
+      } catch (error) {
+        removeSyncingToasts();
+        console.error(
+          'Không thể tải nhiệm vụ từ n8n/Google Sheets. Tiếp tục dùng dữ liệu localStorage.',
+          error
+        );
+        addToast(
+          'error',
+          'Không thể kết nối n8n/Google Sheets',
+          'Đang sử dụng dữ liệu lưu tạm trong máy'
+        );
       }
-    } catch (error) {
-      console.error(
-        'Không thể tải nhiệm vụ từ n8n/Google Sheets. Tiếp tục dùng dữ liệu localStorage.',
-        error
-      );
-    }
-  };
+    };
 
-  loadTasks();
-}, []);
+    loadTasks();
+  }, []);
   const [viewMode, setViewMode] = useState<ViewMode>('table');
   const [filter, setFilter] = useState<FilterState>({
     search: '',
@@ -61,14 +75,25 @@ export default function App() {
     saveStoredTasks(tasks);
   }, [tasks]);
 
-  // Extract distinct departments, leaders, and months
+  // Tách biệt: Nhiệm vụ có đơn vị chủ trì cụ thể (tracked_task) và Chỉ đạo chung (general_directive)
+  const specificTasks = useMemo(() => {
+    return tasks.filter((t) => !isGeneralDirective(t.department) && t.taskType !== 'general_directive');
+  }, [tasks]);
+
+  const generalDirectives = useMemo(() => {
+    return tasks.filter((t) => isGeneralDirective(t.department) || t.taskType === 'general_directive');
+  }, [tasks]);
+
+  // Extract distinct departments (chỉ lấy đơn vị cụ thể, loại bỏ hoàn toàn các giá trị chung chung)
   const departments = useMemo(() => {
     const set = new Set<string>();
-    tasks.forEach((t) => {
-      if (t.department) set.add(t.department);
+    specificTasks.forEach((t) => {
+      if (t.department && !isGeneralDirective(t.department)) {
+        set.add(t.department);
+      }
     });
     return Array.from(set);
-  }, [tasks]);
+  }, [specificTasks]);
 
   const leaders = useMemo(() => {
     const set = new Set<string>();
@@ -101,9 +126,9 @@ export default function App() {
     return `${currentMonth}-${String(maxNum + 1).padStart(3, '0')}`;
   }, [tasks, months]);
 
-  // Filter tasks based on search & filters
+  // Filter specific tasks based on search & filters (chỉ dành cho bảng tiến độ TASKS)
   const filteredTasks = useMemo(() => {
-    return tasks.filter((t) => {
+    return specificTasks.filter((t) => {
       // Search
       if (filter.search) {
         const q = filter.search.toLowerCase();
@@ -140,24 +165,49 @@ export default function App() {
 
       return true;
     });
-  }, [tasks, filter]);
+  }, [specificTasks, filter]);
+
+  // Filter general directives (để xem trong tab Chỉ đạo chung)
+  const filteredGeneralDirectives = useMemo(() => {
+    return generalDirectives.filter((t) => {
+      if (filter.search) {
+        const q = filter.search.toLowerCase();
+        const matches =
+          t.code.toLowerCase().includes(q) ||
+          t.task.toLowerCase().includes(q) ||
+          t.milestone.toLowerCase().includes(q) ||
+          t.directedBy.toLowerCase().includes(q) ||
+          t.collaborators.toLowerCase().includes(q);
+        if (!matches) return false;
+      }
+      if (filter.directedBy && t.directedBy !== filter.directedBy) {
+        return false;
+      }
+      if (filter.status && t.status !== filter.status) {
+        return false;
+      }
+      if (filter.month && filter.month !== 'all' && t.month !== filter.month) {
+        return false;
+      }
+      return true;
+    });
+  }, [generalDirectives, filter]);
 
   // Action Handlers
   const handleUpdateStatus = (code: string, newStatus: TaskStatus) => {
+    let taskToSync: TaskItem | null = null;
+
     setTasks((prev) =>
       prev.map((t) => {
         if (t.code === code) {
-          // If status set to 'Hoàn thành', also boost progress to 100% if not already
           const newProgress = newStatus === 'Hoàn thành' ? 100 : t.progress === 100 ? 90 : t.progress;
-          const updated = {
+          const updated: TaskItem = {
             ...t,
             status: newStatus,
             progress: newProgress,
             updatedAt: new Date().toISOString(),
           };
-          updateTask(updated).catch((error) => {
-  console.error('Lỗi cập nhật trạng thái lên Google Sheets:', error);
-});
+          taskToSync = updated;
           if (taskForDetail && taskForDetail.code === code) {
             setTaskForDetail(updated);
           }
@@ -166,9 +216,26 @@ export default function App() {
         return t;
       })
     );
+
+    if (taskToSync) {
+      const task = taskToSync as TaskItem;
+      addToast('syncing', `Đang cập nhật trạng thái nhiệm vụ ${code}...`);
+      syncTaskToSheet(task)
+        .then(() => {
+          removeSyncingToasts();
+          addToast('success', `Nhiệm vụ ${code}: chuyển sang "${newStatus}"`);
+        })
+        .catch((error) => {
+          removeSyncingToasts();
+          console.error('Lỗi cập nhật trạng thái lên Google Sheets:', error);
+          addToast('error', `Lỗi đồng bộ trạng thái ${code}`, 'Thay đổi đã được lưu tạm trên máy');
+        });
+    }
   };
 
   const handleUpdateProgress = (code: string, newProgress: number) => {
+    let taskToSync: TaskItem | null = null;
+
     setTasks((prev) =>
       prev.map((t) => {
         if (t.code === code) {
@@ -178,15 +245,13 @@ export default function App() {
           } else if (newProgress > 0 && (t.status === 'Chưa cập nhật' || t.status === 'Chưa thực hiện')) {
             updatedStatus = 'Đang thực hiện';
           }
-          const updated = {
+          const updated: TaskItem = {
             ...t,
             progress: newProgress,
             status: updatedStatus,
             updatedAt: new Date().toISOString(),
           };
-          updateTask(updated).catch((error) => {
-  console.error('Lỗi cập nhật tiến độ lên Google Sheets:', error);
-});
+          taskToSync = updated;
           if (taskForDetail && taskForDetail.code === code) {
             setTaskForDetail(updated);
           }
@@ -195,26 +260,93 @@ export default function App() {
         return t;
       })
     );
+
+    // Áp dụng Debounce 500ms khi kéo thanh trượt để tránh spam request sang n8n/Sheet
+    if (taskToSync) {
+      const task = taskToSync as TaskItem;
+      if (debounceTimers.current[code]) {
+        clearTimeout(debounceTimers.current[code]);
+      }
+
+      debounceTimers.current[code] = setTimeout(async () => {
+        addToast('syncing', `Đang lưu tiến độ nhiệm vụ ${code}...`);
+        try {
+          await syncTaskToSheet(task);
+          removeSyncingToasts();
+          addToast('success', `Đã lưu tiến độ ${task.progress}% cho nhiệm vụ ${code}`);
+        } catch (error) {
+          removeSyncingToasts();
+          console.error('Lỗi cập nhật tiến độ lên Google Sheets:', error);
+          addToast('error', `Lỗi đồng bộ nhiệm vụ ${code}`, 'Tiến độ đã được lưu tạm trên máy');
+        }
+      }, 500);
+    }
   };
 
   const handleSaveTask = (savedTask: TaskItem) => {
+    const isExisting = tasks.some((t) => t.code === savedTask.code);
+    const department = savedTask.department?.trim() || '';
+    const taskType: TaskType =
+      savedTask.taskType === 'general_directive' || savedTask.taskType === 'tracked_task'
+        ? savedTask.taskType
+        : isGeneralDirective(department)
+        ? 'general_directive'
+        : 'tracked_task';
+
+    const taskWithTimestamp: TaskItem = {
+      ...savedTask,
+      department,
+      taskType,
+      updatedAt: new Date().toISOString(),
+    };
+
     setTasks((prev) => {
-      const exists = prev.some((t) => t.code === savedTask.code);
+      const exists = prev.some((t) => t.code === taskWithTimestamp.code);
       if (exists) {
-        return prev.map((t) => (t.code === savedTask.code ? savedTask : t));
+        return prev.map((t) => (t.code === taskWithTimestamp.code ? taskWithTimestamp : t));
       } else {
-        return [savedTask, ...prev];
+        return [taskWithTimestamp, ...prev];
       }
     });
 
-    if (taskForDetail && taskForDetail.code === savedTask.code) {
-      setTaskForDetail(savedTask);
+    if (taskForDetail && taskForDetail.code === taskWithTimestamp.code) {
+      setTaskForDetail(taskWithTimestamp);
     }
     setTaskToEdit(null);
     setIsNewTaskModalOpen(false);
+
+    addToast(
+      'syncing',
+      isExisting
+        ? `Đang cập nhật nhiệm vụ ${taskWithTimestamp.code}...`
+        : `Đang thêm mới nhiệm vụ ${taskWithTimestamp.code}...`
+    );
+
+    syncTaskToSheet(taskWithTimestamp)
+      .then(() => {
+        removeSyncingToasts();
+        addToast(
+          'success',
+          isExisting
+            ? `Đã cập nhật nhiệm vụ ${taskWithTimestamp.code}`
+            : `Đã thêm nhiệm vụ ${taskWithTimestamp.code} vào Sheet`
+        );
+      })
+      .catch((error) => {
+        removeSyncingToasts();
+        console.error('Lỗi đồng bộ nhiệm vụ lên Google Sheets:', error);
+        addToast('error', 'Không thể đồng bộ với Google Sheets', 'Dữ liệu đã được lưu tạm trên máy');
+      });
   };
 
   const handleDuplicateTask = (task: TaskItem) => {
+    const taskType: TaskType =
+      task.taskType === 'general_directive' || task.taskType === 'tracked_task'
+        ? task.taskType
+        : isGeneralDirective(task.department)
+        ? 'general_directive'
+        : 'tracked_task';
+
     const duplicated: TaskItem = {
       ...task,
       code: nextSuggestedCode,
@@ -222,16 +354,50 @@ export default function App() {
       task: `[Bản sao] ${task.task}`,
       status: 'Chưa cập nhật',
       progress: 0,
+      taskType,
       notes: [],
       updatedAt: new Date().toISOString(),
     };
     setTasks((prev) => [duplicated, ...prev]);
+
+    addToast('syncing', `Đang sao chép nhiệm vụ ${duplicated.code}...`);
+    syncTaskToSheet(duplicated)
+      .then(() => {
+        removeSyncingToasts();
+        addToast('success', `Đã tạo bản sao ${duplicated.code} trên Sheet`);
+      })
+      .catch((error) => {
+        removeSyncingToasts();
+        console.error('Lỗi sao chép nhiệm vụ lên Sheet:', error);
+        addToast('error', 'Lỗi đồng bộ bản sao', 'Bản sao đã được lưu tạm trên máy');
+      });
   };
 
   const handleDeleteTask = (code: string) => {
+    const taskToDelete = tasks.find((t) => t.code === code);
     setTasks((prev) => prev.filter((t) => t.code !== code));
     if (taskForDetail && taskForDetail.code === code) {
       setTaskForDetail(null);
+    }
+
+    if (taskToDelete) {
+      // Soft delete: đồng bộ trạng thái "Tạm hoãn" lên Sheet để lưu vết
+      const softDeleted: TaskItem = {
+        ...taskToDelete,
+        status: 'Tạm hoãn',
+        updatedAt: new Date().toISOString(),
+      };
+      addToast('syncing', `Đang cập nhật trạng thái xóa ${code}...`);
+      syncTaskToSheet(softDeleted)
+        .then(() => {
+          removeSyncingToasts();
+          addToast('info', `Nhiệm vụ ${code} đã được chuyển sang "Tạm hoãn" trên Sheet`);
+        })
+        .catch((error) => {
+          removeSyncingToasts();
+          console.error('Lỗi cập nhật xóa trên Sheet:', error);
+          addToast('error', `Lỗi đồng bộ xóa nhiệm vụ ${code}`);
+        });
     }
   };
 
@@ -239,16 +405,19 @@ export default function App() {
     setTasks((prev) =>
       prev.map((t) => {
         if (codes.includes(t.code)) {
-          return {
+          const updated: TaskItem = {
             ...t,
             status: 'Hoàn thành',
             progress: 100,
             updatedAt: new Date().toISOString(),
           };
+          syncTaskToSheet(updated).catch(console.error);
+          return updated;
         }
         return t;
       })
     );
+    addToast('success', `Đã cập nhật hoàn thành cho ${codes.length} nhiệm vụ`);
   };
 
   const handleBulkDelete = (codes: string[]) => {
@@ -265,15 +434,17 @@ export default function App() {
       content: noteContent,
     };
 
+    let updatedTask: TaskItem | null = null;
     setTasks((prev) =>
       prev.map((t) => {
         if (t.code === code) {
           const updatedNotes = [newNote, ...(t.notes || [])];
-          const updated = {
+          const updated: TaskItem = {
             ...t,
             notes: updatedNotes,
             updatedAt: new Date().toISOString(),
           };
+          updatedTask = updated;
           if (taskForDetail && taskForDetail.code === code) {
             setTaskForDetail(updated);
           }
@@ -282,18 +453,34 @@ export default function App() {
         return t;
       })
     );
+
+    if (updatedTask) {
+      addToast('syncing', `Đang lưu ghi chú nhiệm vụ ${code}...`);
+      syncTaskToSheet(updatedTask)
+        .then(() => {
+          removeSyncingToasts();
+          addToast('success', `Đã lưu ghi chú vào Google Sheets`);
+        })
+        .catch((error) => {
+          removeSyncingToasts();
+          console.error('Lỗi lưu ghi chú lên Sheet:', error);
+          addToast('error', 'Lỗi đồng bộ ghi chú', 'Ghi chú đã được lưu trên máy');
+        });
+    }
   };
 
   const handleDeleteNote = (code: string, noteId: string) => {
+    let updatedTask: TaskItem | null = null;
     setTasks((prev) =>
       prev.map((t) => {
         if (t.code === code) {
           const updatedNotes = (t.notes || []).filter((n) => n.id !== noteId);
-          const updated = {
+          const updated: TaskItem = {
             ...t,
             notes: updatedNotes,
             updatedAt: new Date().toISOString(),
           };
+          updatedTask = updated;
           if (taskForDetail && taskForDetail.code === code) {
             setTaskForDetail(updated);
           }
@@ -302,6 +489,20 @@ export default function App() {
         return t;
       })
     );
+
+    if (updatedTask) {
+      addToast('syncing', `Đang cập nhật ghi chú...`);
+      syncTaskToSheet(updatedTask)
+        .then(() => {
+          removeSyncingToasts();
+          addToast('success', `Đã xóa ghi chú trên Google Sheets`);
+        })
+        .catch((error) => {
+          removeSyncingToasts();
+          console.error('Lỗi xóa ghi chú trên Sheet:', error);
+          addToast('error', 'Lỗi đồng bộ xóa ghi chú');
+        });
+    }
   };
 
   const handleImportTasks = (importedTasks: TaskItem[], overwrite: boolean) => {
@@ -343,8 +544,8 @@ export default function App() {
         onResetData={handleResetToDefault}
       />
 
-      {/* Main KPI Stats */}
-      <ExecutiveStats tasks={tasks} currentMonth={months[0] || '09/2026'} />
+      {/* Main KPI Stats (Chỉ tính các nhiệm vụ có đơn vị chủ trì cụ thể) */}
+      <ExecutiveStats tasks={specificTasks} currentMonth={months[0] || '09/2026'} />
 
       {/* Filter and Search Bar */}
       <FilterToolbar
@@ -353,17 +554,18 @@ export default function App() {
         departments={departments}
         leaders={leaders}
         months={months}
-        totalCount={tasks.length}
+        totalCount={specificTasks.length}
         filteredCount={filteredTasks.length}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
       />
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {viewMode === 'table' && (
           <TaskTableView
             tasks={filteredTasks}
+            generalDirectives={filteredGeneralDirectives}
             onUpdateStatus={handleUpdateStatus}
             onUpdateProgress={handleUpdateProgress}
             onOpenEdit={(task) => {
@@ -448,6 +650,14 @@ export default function App() {
             tasks={filteredTasks}
             departments={departments}
             currentMonth={months[0] || '09/2026'}
+            onNotify={(type, msg, desc) => {
+              if (type === 'syncing') {
+                addToast(type, msg, desc);
+              } else {
+                removeSyncingToasts();
+                addToast(type, msg, desc);
+              }
+            }}
           />
         )}
       </main>
@@ -493,10 +703,10 @@ export default function App() {
       />
 
       {/* Quiet Corporate Footer (Compliant with Anti-Slop section B) */}
-      <footer className="border-t border-slate-200 bg-white py-4 mt-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
+      <footer className="border-t border-slate-200 bg-white py-4 mt-8 print:hidden">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
           <div>
-            <span>Hệ thống Quản lý Nhiệm vụ Giao ban · Công ty Cổ phần Thủy điện VNPD</span>
+            <span>Hệ thống Quản lý Nhiệm vụ Giao ban · Công ty Cổ phần Phát triển Điện lực Việt Nam (VNPD)</span>
           </div>
           <div className="flex items-center gap-4">
             <span className="font-mono tabular-nums">Tổng {tasks.length} nhiệm vụ</span>
@@ -505,6 +715,9 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* Toast Notification Container */}
+      <ToastContainer toasts={toasts} onDismiss={removeToast} />
     </div>
   );
 }

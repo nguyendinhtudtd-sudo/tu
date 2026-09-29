@@ -109,6 +109,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       status: finalStatus,
       progress: finalProgress,
       pageReference: formData.pageReference?.trim() || 'Phụ lục - trang 1',
+      taskType: formData.taskType,
       notes: formData.notes || [],
       updatedAt: new Date().toISOString(),
     });
