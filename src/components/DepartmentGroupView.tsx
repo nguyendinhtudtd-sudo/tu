@@ -34,6 +34,24 @@ export const DepartmentGroupView: React.FC<DepartmentGroupViewProps> = ({
 
   return (
     <div className="space-y-4">
+      {/* Dedicated Department Header Banner */}
+      <div className="bg-white border border-slate-200/90 rounded-xl p-4 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 flex items-center justify-center font-bold shrink-0">
+            <Building2 className="w-5 h-5 text-blue-600" />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-slate-900 uppercase tracking-tight">TIẾN ĐỘ THEO ĐƠN VỊ / PHÒNG BAN</h2>
+            <p className="text-xs text-slate-500">Theo dõi chi tiết các kết luận giao ban phân theo từng đơn vị, phòng ban phụ trách</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 self-start sm:self-auto text-xs">
+          <span className="px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-200 font-mono font-bold text-slate-700">
+            {departments.length} đơn vị chủ trì · {tasks.length} việc
+          </span>
+        </div>
+      </div>
+
       {departments.map((dept) => {
         const deptTasks = tasks.filter((t) => t.department === dept);
         const total = deptTasks.length;
@@ -84,7 +102,7 @@ export const DepartmentGroupView: React.FC<DepartmentGroupViewProps> = ({
                 <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-md border border-slate-200">
                   <div className="text-right">
                     <div className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">
-                      Tiến độ
+                      TIẾN ĐỘ
                     </div>
                     <div className="text-xs font-bold text-blue-600 font-mono tabular-nums">
                       {avgProgress}%

@@ -1,6 +1,6 @@
 import React from 'react';
 import { ViewMode } from '../types/task';
-import { Plus, Download, RefreshCw, LayoutGrid, Table, Kanban, Building2, UserCheck } from 'lucide-react';
+import { Plus, Download, LayoutGrid, Table, Kanban, Building2, UserCheck } from 'lucide-react';
 
 interface HeaderProps {
   viewMode: ViewMode;
@@ -15,115 +15,106 @@ export const Header: React.FC<HeaderProps> = ({
   onViewModeChange,
   onOpenNewTask,
   onOpenImportExport,
-  onResetData,
 }) => {
   return (
-    <header className="border-b border-slate-200 bg-white sticky top-0 z-30 shadow-xs print:hidden">
-      {/* Strict Top Bar Contract: Zone 1 (Single element wordmark) — Zone 2 (4 clean nav links) — Zone 3 (Primary actions) */}
-      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 h-[72px] flex items-center justify-between gap-4">
-        {/* Zone 1: Brand Logo & Title */}
-        <div className="flex items-center gap-3">
-          <a href="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
+    <header className="border-b border-slate-200 bg-white sticky top-0 z-30 shadow-2xs print:hidden">
+      {/* 3 Balanced Zones: Left (Brand) — Center (Nav tabs dead-center) — Right (Actions) */}
+      <div className="w-full max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 h-[76px] grid grid-cols-2 md:grid-cols-[1fr_auto_1fr] items-center gap-4">
+        {/* VÙNG 1 (BÊN TRÁI): Logo EVNDevelopment + badge TASKFLOW */}
+        <div className="flex items-center gap-2.5 justify-start min-w-0">
+          <a href="/" className="flex items-center gap-2.5 hover:opacity-95 transition-opacity">
             <img
               src="/logo.png"
               alt="EVN Development - VNPD Logo"
-              className="h-11 sm:h-12 w-auto max-w-[280px] sm:max-w-[340px] object-contain"
+              className="h-10 sm:h-11 w-auto max-w-[240px] sm:max-w-[280px] object-contain"
             />
-            <span className="hidden sm:inline-flex items-center text-xs font-extrabold px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 border border-blue-200/80 tracking-wide uppercase shadow-2xs">
-              TaskFlow
+            <span className="hidden lg:inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-500 border border-slate-200 tracking-wider uppercase">
+              TASKFLOW
             </span>
           </a>
         </div>
 
-        {/* Zone 2: Navigation Links (Clean text with subtle active state) */}
-        <nav className="hidden md:flex items-center gap-1 sm:gap-2">
-          <button
-            onClick={() => onViewModeChange('table')}
-            className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap cursor-pointer ${
-              viewMode === 'table'
-                ? 'bg-slate-100 text-blue-600 font-semibold shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-          >
-            <Table className="w-3.5 h-3.5" />
-            <span>Danh sách bảng</span>
-          </button>
+        {/* VÙNG 2 (Ở GIỮA): Nhóm menu điều hướng căn giữa theo chiều ngang */}
+        <nav className="hidden md:flex items-center justify-center">
+          <div className="flex items-center gap-1 p-1 bg-slate-100/90 rounded-xl border border-slate-200/70 shadow-2xs">
+            <button
+              onClick={() => onViewModeChange('table')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap cursor-pointer ${
+                viewMode === 'table'
+                  ? 'bg-white text-blue-700 shadow-xs border border-slate-200/60'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+              }`}
+            >
+              <Table className="w-3.5 h-3.5" />
+              <span>Danh sách</span>
+            </button>
 
-          <button
-            onClick={() => onViewModeChange('kanban')}
-            className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap cursor-pointer ${
-              viewMode === 'kanban'
-                ? 'bg-slate-100 text-blue-600 font-semibold shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-          >
-            <Kanban className="w-3.5 h-3.5" />
-            <span>Bảng Kanban</span>
-          </button>
+            <button
+              onClick={() => onViewModeChange('kanban')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap cursor-pointer ${
+                viewMode === 'kanban'
+                  ? 'bg-white text-blue-700 shadow-xs border border-slate-200/60'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+              }`}
+            >
+              <Kanban className="w-3.5 h-3.5" />
+              <span>Kanban</span>
+            </button>
 
-          <button
-            onClick={() => onViewModeChange('department')}
-            className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap cursor-pointer ${
-              viewMode === 'department'
-                ? 'bg-slate-100 text-blue-600 font-semibold shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-          >
-            <Building2 className="w-3.5 h-3.5" />
-            <span>Theo Phòng ban</span>
-          </button>
+            <button
+              onClick={() => onViewModeChange('department')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap cursor-pointer ${
+                viewMode === 'department'
+                  ? 'bg-white text-blue-700 shadow-xs border border-slate-200/60'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+              }`}
+            >
+              <Building2 className="w-3.5 h-3.5" />
+              <span>Phòng ban</span>
+            </button>
 
-          <button
-            onClick={() => onViewModeChange('executive')}
-            className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap cursor-pointer ${
-              viewMode === 'executive'
-                ? 'bg-slate-100 text-blue-600 font-semibold shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-          >
-            <UserCheck className="w-3.5 h-3.5" />
-            <span>Theo Lãnh đạo</span>
-          </button>
+            <button
+              onClick={() => onViewModeChange('executive')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap cursor-pointer ${
+                viewMode === 'executive'
+                  ? 'bg-white text-blue-700 shadow-xs border border-slate-200/60'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+              }`}
+            >
+              <UserCheck className="w-3.5 h-3.5" />
+              <span>Lãnh đạo</span>
+            </button>
 
-          <button
-            onClick={() => onViewModeChange('analytics')}
-            className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap cursor-pointer ${
-              viewMode === 'analytics'
-                ? 'bg-slate-100 text-blue-600 font-semibold shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-          >
-            <LayoutGrid className="w-3.5 h-3.5" />
-            <span>Phân tích</span>
-          </button>
-
-          <button
-            onClick={() => onViewModeChange('report')}
-            className={`flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap cursor-pointer ${
-              viewMode === 'report'
-                ? 'bg-slate-100 text-blue-600 font-semibold shadow-xs'
-                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-            }`}
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span>Bản in báo cáo</span>
-          </button>
+            <button
+              onClick={() => onViewModeChange('analytics')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all whitespace-nowrap cursor-pointer ${
+                viewMode === 'analytics'
+                  ? 'bg-white text-blue-700 shadow-xs border border-slate-200/60'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>Dashboard</span>
+            </button>
+          </div>
         </nav>
 
-        {/* Zone 3: Primary Actions */}
-        <div className="flex items-center gap-2">
+        {/* VÙNG 3 (BÊN PHẢI): Dữ liệu JSON/CSV (Secondary) + + Thêm nhiệm vụ (Primary) */}
+        <div className="flex items-center justify-end gap-2.5">
+          {/* Nút Secondary: Dữ liệu JSON/CSV */}
           <button
             onClick={onOpenImportExport}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors whitespace-nowrap cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-200/90 hover:border-slate-300 rounded-lg transition-all shadow-2xs whitespace-nowrap cursor-pointer"
             title="Nhập / Xuất dữ liệu JSON & CSV"
           >
             <Download className="w-3.5 h-3.5 text-slate-500" />
             <span className="hidden sm:inline">Dữ liệu JSON/CSV</span>
           </button>
 
+          {/* Nút Primary: + Thêm nhiệm vụ */}
           <button
             onClick={onOpenNewTask}
-            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors shadow-xs whitespace-nowrap cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all shadow-xs hover:shadow-sm whitespace-nowrap cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Thêm nhiệm vụ</span>

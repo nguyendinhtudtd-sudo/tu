@@ -235,11 +235,37 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
           {/* Activity / Progress Log (Nhật ký thực hiện) */}
           <div>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2 font-bold text-slate-900 text-xs">
                 <MessageSquare className="w-4 h-4 text-blue-600" />
                 <span>Nhật ký cập nhật tiến độ ({task.notes?.length || 0})</span>
               </div>
+            </div>
+
+            {/* Quick Type Selection for Jira-style Note Logging */}
+            <div className="flex flex-wrap items-center gap-1.5 mb-2">
+              <span className="text-[10px] text-slate-400 font-medium mr-1">Phân loại nhanh:</span>
+              <button
+                type="button"
+                onClick={() => setNewNote((prev) => prev.startsWith('[Kết quả] ') ? prev : `[Kết quả] ${prev.replace(/^\[(Kết quả|Vướng mắc|Kế hoạch)\]\s*/, '')}`)}
+                className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 transition-colors cursor-pointer"
+              >
+                + Kết quả
+              </button>
+              <button
+                type="button"
+                onClick={() => setNewNote((prev) => prev.startsWith('[Vướng mắc] ') ? prev : `[Vướng mắc] ${prev.replace(/^\[(Kết quả|Vướng mắc|Kế hoạch)\]\s*/, '')}`)}
+                className="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer"
+              >
+                + Vướng mắc
+              </button>
+              <button
+                type="button"
+                onClick={() => setNewNote((prev) => prev.startsWith('[Kế hoạch] ') ? prev : `[Kế hoạch] ${prev.replace(/^\[(Kết quả|Vướng mắc|Kế hoạch)\]\s*/, '')}`)}
+                className="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors cursor-pointer"
+              >
+                + Kế hoạch
+              </button>
             </div>
 
             {/* Note Input */}
@@ -247,7 +273,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
               <div className="flex gap-2">
                 <input
                   type="text"
-                  placeholder="Ghi chú tiến độ mới (vd: Đã gửi dự thảo lấy ý kiến...)"
+                  placeholder="Ghi chú kết quả, vướng mắc phát sinh hoặc kế hoạch..."
                   value={newNote}
                   onChange={(e) => setNewNote(e.target.value)}
                   className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-600 text-xs"
@@ -255,10 +281,10 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                 <button
                   type="submit"
                   disabled={!newNote.trim()}
-                  className="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors cursor-pointer flex items-center gap-1"
+                  className="px-3 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg font-medium transition-colors cursor-pointer flex items-center gap-1 shrink-0"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>Ghi</span>
+                  <span>Lưu</span>
                 </button>
               </div>
             </form>
@@ -270,26 +296,44 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                   Chưa có ghi chú cập nhật tiến độ nào.
                 </div>
               ) : (
-                task.notes.map((note) => (
-                  <div
-                    key={note.id}
-                    className="p-3 bg-slate-50 border border-slate-200 rounded-lg relative group"
-                  >
-                    <div className="flex items-center justify-between text-[10px] text-slate-400 mb-1">
-                      <span>{note.timestamp}</span>
-                      <button
-                        onClick={() => onDeleteNote(task.code, note.id)}
-                        className="text-slate-400 hover:text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                        title="Xóa ghi chú"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
+                task.notes.map((note) => {
+                  let badge = null;
+                  let cleanContent = note.content;
+                  if (note.content.startsWith('[Kết quả]')) {
+                    badge = <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200 shrink-0">Kết quả</span>;
+                    cleanContent = note.content.replace(/^\[Kết quả\]\s*/, '');
+                  } else if (note.content.startsWith('[Vướng mắc]')) {
+                    badge = <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-200 shrink-0">Vướng mắc</span>;
+                    cleanContent = note.content.replace(/^\[Vướng mắc\]\s*/, '');
+                  } else if (note.content.startsWith('[Kế hoạch]')) {
+                    badge = <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 border border-blue-200 shrink-0">Kế hoạch</span>;
+                    cleanContent = note.content.replace(/^\[Kế hoạch\]\s*/, '');
+                  }
+
+                  return (
+                    <div
+                      key={note.id}
+                      className="p-3 bg-slate-50 border border-slate-200 rounded-lg relative group"
+                    >
+                      <div className="flex items-center justify-between text-[10px] text-slate-400 mb-1.5">
+                        <div className="flex items-center gap-2">
+                          {badge}
+                          <span>{note.timestamp}</span>
+                        </div>
+                        <button
+                          onClick={() => onDeleteNote(task.code, note.id)}
+                          className="text-slate-400 hover:text-rose-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                          title="Xóa ghi chú"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <p className="text-slate-800 text-xs leading-relaxed whitespace-pre-wrap">
+                        {cleanContent}
+                      </p>
                     </div>
-                    <p className="text-slate-800 text-xs leading-relaxed whitespace-pre-wrap">
-                      {note.content}
-                    </p>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
           </div>

@@ -69,7 +69,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
       {/* Top action bar for Report */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 border border-slate-200 rounded-xl shadow-xs print:hidden">
         <div>
-          <h2 className="text-sm font-bold text-slate-900">Bản Báo Cáo In & Thông Báo Điều Hành</h2>
+          <h2 className="text-sm font-bold text-slate-900 uppercase tracking-tight">BẢN BÁO CÁO IN & THÔNG BÁO ĐIỀU HÀNH</h2>
           <p className="text-xs text-slate-500">
             Xuất văn bản thể thức giao ban hoặc gửi nhanh báo cáo tóm tắt tới nhóm Telegram Ban Giám đốc
           </p>
@@ -120,32 +120,35 @@ export const ReportView: React.FC<ReportViewProps> = ({
       </div>
 
       {/* Printable Sheet */}
-      <div className="bg-white border border-slate-200 p-8 sm:p-12 rounded-xl shadow-sm print:border-none print:shadow-none print:p-0 max-w-5xl mx-auto text-slate-900 text-xs">
+      <div
+        className="report-printable-sheet bg-white border border-slate-200 p-8 sm:p-12 rounded-xl shadow-sm print:border-none print:shadow-none print:p-0 max-w-5xl mx-auto text-slate-900 text-xs"
+        style={{ fontFamily: '"Times New Roman", Times, Arial, sans-serif', letterSpacing: 'normal' }}
+      >
         {/* National & Corporate Header */}
         <div className="flex justify-between items-start border-b border-slate-900/20 pb-4 mb-6">
           <div className="flex items-start gap-3 text-left">
             <img src="/logo.png" alt="EVN Development" className="h-12 w-auto object-contain" />
-            <div className="font-serif text-[11px] leading-tight">
-              <p className="font-bold text-slate-800">CÔNG TY CỔ PHẦN PHÁT TRIỂN ĐIỆN LỰC VIỆT NAM</p>
-              <p className="font-semibold text-slate-600 mt-0.5">BAN TỔNG GIÁM ĐỐC</p>
-              <p className="text-[10px] text-slate-500 mt-1">Số: .../BC-VNPD</p>
+            <div className="text-[12px] leading-tight">
+              <p className="font-bold text-slate-900">CÔNG TY CỔ PHẦN PHÁT TRIỂN ĐIỆN LỰC VIỆT NAM</p>
+              <p className="font-bold text-slate-800 mt-0.5">BAN TỔNG GIÁM ĐỐC</p>
+              <p className="text-[11px] text-slate-500 mt-1">Số: .../BC-VNPD</p>
             </div>
           </div>
 
-          <div className="text-center font-serif text-[11px] leading-tight">
+          <div className="text-center text-[12px] leading-tight">
             <p className="font-bold text-slate-900 uppercase">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</p>
-            <p className="font-bold text-slate-800 mt-0.5">Độc lập - Tự do - Hạnh phúc</p>
-            <p className="text-[10px] text-slate-400 mt-1">-------o0o-------</p>
-            <p className="text-[10px] text-slate-500 italic mt-1">Hà Nội, ngày 26 tháng 09 năm 2026</p>
+            <p className="font-bold text-slate-900 mt-0.5">Độc lập - Tự do - Hạnh phúc</p>
+            <p className="text-[11px] text-slate-400 mt-1">-------o0o-------</p>
+            <p className="text-[11px] text-slate-500 italic mt-1">Hà Nội, ngày 26 tháng 09 năm 2026</p>
           </div>
         </div>
 
         {/* Title */}
         <div className="text-center my-6">
-          <h1 className="text-base font-bold font-serif uppercase tracking-wide text-slate-900">
+          <h1 className="text-base font-bold uppercase text-slate-900">
             BÁO CÁO TIẾN ĐỘ THỰC HIỆN KẾT LUẬN HỌP GIAO BAN
           </h1>
-          <p className="text-xs text-slate-600 mt-1 font-serif italic">
+          <p className="text-xs text-slate-600 mt-1 italic">
             Kỳ giao ban trực tuyến tháng {currentMonth}
           </p>
         </div>
@@ -156,19 +159,19 @@ export const ReportView: React.FC<ReportViewProps> = ({
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
             <div>
               <span className="text-slate-500 block">Tổng nhiệm vụ:</span>
-              <strong className="font-mono text-sm">{tasks.length} nhiệm vụ</strong>
+              <strong className="text-sm">{tasks.length} nhiệm vụ</strong>
             </div>
             <div>
               <span className="text-slate-500 block">Đã hoàn thành:</span>
-              <strong className="font-mono text-sm text-emerald-700">{completed} nhiệm vụ</strong>
+              <strong className="text-sm text-emerald-700">{completed} nhiệm vụ</strong>
             </div>
             <div>
               <span className="text-slate-500 block">Đang triển khai:</span>
-              <strong className="font-mono text-sm text-blue-700">{inProgress} nhiệm vụ</strong>
+              <strong className="text-sm text-blue-700">{inProgress} nhiệm vụ</strong>
             </div>
             <div>
               <span className="text-slate-500 block">Tiến độ bình quân:</span>
-              <strong className="font-mono text-sm text-slate-900">{avg}%</strong>
+              <strong className="text-sm text-slate-900">{avg}%</strong>
             </div>
           </div>
         </div>
@@ -183,7 +186,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
 
             return (
               <div key={dept} className="space-y-2">
-                <h4 className="font-bold text-xs text-slate-900 uppercase tracking-wide border-l-2 border-blue-600 pl-2">
+                <h4 className="font-bold text-xs text-slate-900 uppercase border-l-2 border-blue-600 pl-2">
                   {dept} ({deptTasks.length} nhiệm vụ)
                 </h4>
 
@@ -202,7 +205,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                   <tbody>
                     {deptTasks.map((t) => (
                       <tr key={t.code} className="hover:bg-slate-50">
-                        <td className="border border-slate-300 py-1.5 px-2 text-center font-mono font-medium">
+                        <td className="border border-slate-300 py-1.5 px-2 text-center font-medium">
                           {t.code}
                         </td>
                         <td className="border border-slate-300 py-1.5 px-3 leading-relaxed">
@@ -217,7 +220,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                         <td className="border border-slate-300 py-1.5 px-2 text-slate-600">
                           {t.implementationTime}
                         </td>
-                        <td className="border border-slate-300 py-1.5 px-1.5 text-center font-mono font-bold">
+                        <td className="border border-slate-300 py-1.5 px-1.5 text-center font-bold">
                           {t.progress}%
                         </td>
                         <td className="border border-slate-300 py-1.5 px-2 text-center">
@@ -245,7 +248,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
         </div>
 
         {/* Signature Area */}
-        <div className="grid grid-cols-3 gap-6 mt-12 pt-6 text-center font-serif text-[11px] leading-tight">
+        <div className="signature-block grid grid-cols-3 gap-6 mt-12 pt-6 text-center text-[11px] leading-tight">
           <div>
             <p className="font-bold text-slate-800 uppercase">NGƯỜI LẬP BIỂU</p>
             <p className="text-[10px] text-slate-500 italic mt-1">(Ký, ghi rõ họ tên)</p>

@@ -22,8 +22,27 @@ export const ExecutiveGroupView: React.FC<ExecutiveGroupViewProps> = ({
   onOpenEdit,
 }) => {
   return (
-    <div className="space-y-6">
-      {leaders.map((leader) => {
+    <div className="space-y-4">
+      {/* Dedicated Executive Header Banner */}
+      <div className="bg-white border border-slate-200/90 rounded-xl p-4 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 flex items-center justify-center font-bold shrink-0">
+            <UserCheck className="w-5 h-5 text-blue-600" />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-slate-900 uppercase tracking-tight">TIẾN ĐỘ THEO LÃNH ĐẠO CHỈ ĐẠO</h2>
+            <p className="text-xs text-slate-500">Phân định trách nhiệm và tiến độ kết luận giao ban do từng Lãnh đạo trực tiếp chỉ đạo</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 self-start sm:self-auto text-xs">
+          <span className="px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-200 font-mono font-bold text-slate-700">
+            {leaders.length} Lãnh đạo chỉ đạo · {tasks.length} việc
+          </span>
+        </div>
+      </div>
+
+      <div className="space-y-5">
+        {leaders.map((leader) => {
         const leaderTasks = tasks.filter((t) => t.directedBy === leader);
         const total = leaderTasks.length;
         const completed = leaderTasks.filter((t) => t.status === 'Hoàn thành' || t.progress === 100).length;
@@ -57,22 +76,22 @@ export const ExecutiveGroupView: React.FC<ExecutiveGroupViewProps> = ({
               <div className="flex flex-wrap items-center gap-4 text-xs">
                 <div className="flex items-center gap-1.5 text-emerald-700 bg-white px-2.5 py-1 rounded border border-slate-200">
                   <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>Hoàn thành: <strong>{completed}</strong></span>
+                  <span className="text-[11px] font-semibold uppercase tracking-wider">HOÀN THÀNH: <strong>{completed}</strong></span>
                 </div>
 
                 <div className="flex items-center gap-1.5 text-blue-700 bg-white px-2.5 py-1 rounded border border-slate-200">
-                  <span>Đang làm: <strong>{inProgress}</strong></span>
+                  <span className="text-[11px] font-semibold uppercase tracking-wider">ĐANG LÀM: <strong>{inProgress}</strong></span>
                 </div>
 
                 {delayed > 0 && (
                   <div className="flex items-center gap-1.5 text-rose-700 bg-white px-2.5 py-1 rounded border border-slate-200">
                     <AlertCircle className="w-3.5 h-3.5" />
-                    <span>Chậm tiến độ: <strong>{delayed}</strong></span>
+                    <span className="text-[11px] font-semibold uppercase tracking-wider">CHẬM TIẾN ĐỘ: <strong>{delayed}</strong></span>
                   </div>
                 )}
 
                 <div className="flex items-center gap-2 bg-white px-3 py-1 rounded border border-slate-200">
-                  <span className="text-slate-400">Tiến độ bình quân:</span>
+                  <span className="text-[11px] text-slate-500 font-semibold uppercase tracking-wider">TIẾN ĐỘ BQ:</span>
                   <span className="font-mono font-bold text-blue-600">{avgProgress}%</span>
                   <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                     <div
@@ -157,6 +176,7 @@ export const ExecutiveGroupView: React.FC<ExecutiveGroupViewProps> = ({
           </div>
         );
       })}
+      </div>
     </div>
   );
 };

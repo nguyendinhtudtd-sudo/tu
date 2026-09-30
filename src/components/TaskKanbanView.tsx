@@ -8,7 +8,8 @@ import {
   AlertCircle,
   PauseCircle,
   GripVertical,
-  Plus
+  Plus,
+  Kanban
 } from 'lucide-react';
 
 interface TaskKanbanViewProps {
@@ -46,7 +47,7 @@ export const TaskKanbanView: React.FC<TaskKanbanViewProps> = ({
   const columns: ColumnConfig[] = [
     {
       key: 'pending',
-      title: 'Chưa cập nhật / Chưa làm',
+      title: 'CHƯA THỰC HIỆN / CHƯA CẬP NHẬT',
       targetStatus: 'Chưa thực hiện',
       color: 'text-slate-700',
       bgColor: 'bg-slate-100/60',
@@ -57,7 +58,7 @@ export const TaskKanbanView: React.FC<TaskKanbanViewProps> = ({
     },
     {
       key: 'in_progress',
-      title: 'Đang thực hiện',
+      title: 'ĐANG THỰC HIỆN',
       targetStatus: 'Đang thực hiện',
       color: 'text-blue-700',
       bgColor: 'bg-blue-50/40',
@@ -68,7 +69,7 @@ export const TaskKanbanView: React.FC<TaskKanbanViewProps> = ({
     },
     {
       key: 'completed',
-      title: 'Hoàn thành',
+      title: 'ĐÃ HOÀN THÀNH',
       targetStatus: 'Hoàn thành',
       color: 'text-emerald-700',
       bgColor: 'bg-emerald-50/40',
@@ -79,7 +80,7 @@ export const TaskKanbanView: React.FC<TaskKanbanViewProps> = ({
     },
     {
       key: 'delayed',
-      title: 'Chậm tiến độ / Vướng mắc',
+      title: 'CHẬM TIẾN ĐỘ',
       targetStatus: 'Chậm tiến độ',
       color: 'text-rose-700',
       bgColor: 'bg-rose-50/40',
@@ -90,7 +91,7 @@ export const TaskKanbanView: React.FC<TaskKanbanViewProps> = ({
     },
     {
       key: 'paused',
-      title: 'Tạm hoãn',
+      title: 'TẠM HOÃN',
       targetStatus: 'Tạm hoãn',
       color: 'text-amber-700',
       bgColor: 'bg-amber-50/40',
@@ -136,10 +137,23 @@ export const TaskKanbanView: React.FC<TaskKanbanViewProps> = ({
   };
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between text-xs text-slate-500 mb-1">
-        <span>Kéo & thả thẻ nhiệm vụ giữa các cột để cập nhật trạng thái tức thì</span>
-        <span className="font-mono tabular-nums">{tasks.length} nhiệm vụ trên bảng</span>
+    <div className="space-y-4">
+      {/* Dedicated Kanban Header Banner */}
+      <div className="bg-white border border-slate-200/90 rounded-xl p-4 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 flex items-center justify-center font-bold shrink-0">
+            <Kanban className="w-5 h-5 text-blue-600" />
+          </div>
+          <div>
+            <h2 className="text-base font-bold text-slate-900 uppercase tracking-tight">BẢNG KANBAN TIẾN ĐỘ THỰC HIỆN</h2>
+            <p className="text-xs text-slate-500">Kéo & thả thẻ nhiệm vụ giữa các cột quy trình để cập nhật trạng thái xử lý tức thời</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 self-start sm:self-auto text-xs">
+          <span className="px-3 py-1.5 bg-slate-50 rounded-lg border border-slate-200 font-mono font-bold text-slate-700">
+            {tasks.length} nhiệm vụ trên bảng
+          </span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-3.5 items-start">
@@ -161,7 +175,7 @@ export const TaskKanbanView: React.FC<TaskKanbanViewProps> = ({
               <div className="p-3 border-b border-slate-200/80 bg-white/80 backdrop-blur-xs rounded-t-xl flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   {column.icon}
-                  <span className={`text-xs font-bold ${column.color}`}>{column.title}</span>
+                  <span className={`text-[11px] font-bold uppercase tracking-wider ${column.color}`}>{column.title}</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="font-mono text-xs px-2 py-0.5 rounded-full bg-slate-100 border border-slate-200 font-bold text-slate-700 tabular-nums">

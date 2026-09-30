@@ -59,7 +59,7 @@ export interface TaskItem {
   updatedAt?: string;
 }
 
-export type ViewMode = 'table' | 'kanban' | 'department' | 'executive' | 'analytics' | 'report';
+export type ViewMode = 'table' | 'kanban' | 'department' | 'executive' | 'analytics';
 
 export interface FilterState {
   search: string;

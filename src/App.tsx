@@ -13,7 +13,6 @@ import { TaskKanbanView } from './components/TaskKanbanView';
 import { DepartmentGroupView } from './components/DepartmentGroupView';
 import { ExecutiveGroupView } from './components/ExecutiveGroupView';
 import { AnalyticsView } from './components/AnalyticsView';
-import { ReportView } from './components/ReportView';
 import { TaskModal } from './components/TaskModal';
 import { TaskDetailDrawer } from './components/TaskDetailDrawer';
 import { ImportExportModal } from './components/ImportExportModal';
@@ -530,7 +529,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col text-slate-900 font-sans selection:bg-blue-600 selection:text-white">
+    <div className="min-h-screen bg-[#f4f6f9] flex flex-col text-slate-900 font-sans selection:bg-blue-600 selection:text-white">
       {/* Strict Top Bar */}
       <Header
         viewMode={viewMode}
@@ -544,24 +543,32 @@ export default function App() {
         onResetData={handleResetToDefault}
       />
 
-      {/* Main KPI Stats (Chỉ tính các nhiệm vụ có đơn vị chủ trì cụ thể) */}
-      <ExecutiveStats tasks={specificTasks} currentMonth={months[0] || '09/2026'} />
+      {/* Khối KPI tổng quan: CHỈ HIỂN THỊ Ở TAB DANH SÁCH BẢNG theo yêu cầu */}
+      {viewMode === 'table' && (
+        <ExecutiveStats tasks={specificTasks} currentMonth={months[0] || '09/2026'} />
+      )}
 
-      {/* Filter and Search Bar */}
-      <FilterToolbar
-        filter={filter}
-        onFilterChange={setFilter}
-        departments={departments}
-        leaders={leaders}
-        months={months}
-        totalCount={specificTasks.length}
-        filteredCount={filteredTasks.length}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-      />
+      {/* Thanh lọc: Hiển thị cho các tab danh sách, kanban, phòng ban, lãnh đạo; Ẩn ở tab Phân tích (Dashboard độc lập) */}
+      {viewMode !== 'analytics' && (
+        <FilterToolbar
+          filter={filter}
+          onFilterChange={setFilter}
+          departments={departments}
+          leaders={leaders}
+          months={months}
+          totalCount={specificTasks.length}
+          filteredCount={filteredTasks.length}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+        />
+      )}
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main
+        className={`flex-1 w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 ${
+          viewMode === 'analytics' ? 'max-w-[1800px]' : 'max-w-[1600px]'
+        }`}
+      >
         {viewMode === 'table' && (
           <TaskTableView
             tasks={filteredTasks}
@@ -639,25 +646,11 @@ export default function App() {
 
         {viewMode === 'analytics' && (
           <AnalyticsView
-            tasks={filteredTasks}
+            tasks={specificTasks}
             departments={departments}
             leaders={leaders}
-          />
-        )}
-
-        {viewMode === 'report' && (
-          <ReportView
-            tasks={filteredTasks}
-            departments={departments}
-            currentMonth={months[0] || '09/2026'}
-            onNotify={(type, msg, desc) => {
-              if (type === 'syncing') {
-                addToast(type, msg, desc);
-              } else {
-                removeSyncingToasts();
-                addToast(type, msg, desc);
-              }
-            }}
+            months={months}
+            onOpenDetail={(task) => setTaskForDetail(task)}
           />
         )}
       </main>

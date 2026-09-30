@@ -207,7 +207,7 @@ export const TaskTableView: React.FC<TaskTableViewProps> = ({
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <span>🎯 Tiến độ theo Đơn vị</span>
+            <span>🎯 TIẾN ĐỘ THEO ĐƠN VỊ</span>
             <span
               className={`text-[11px] px-2 py-0.5 rounded-full font-mono font-semibold ${
                 tableTab === 'tasks' ? 'bg-blue-100 text-blue-700' : 'bg-slate-300 text-slate-700'
@@ -228,7 +228,7 @@ export const TaskTableView: React.FC<TaskTableViewProps> = ({
                 : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            <span>📢 Chỉ đạo chung & Toàn Công ty</span>
+            <span>📢 CHỈ ĐẠO CHUNG & TOÀN CÔNG TY</span>
             <span
               className={`text-[11px] px-2 py-0.5 rounded-full font-mono font-semibold ${
                 tableTab === 'directives'
@@ -254,8 +254,8 @@ export const TaskTableView: React.FC<TaskTableViewProps> = ({
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold select-none">
-                <th className="py-3 px-3 w-10 text-center">
+              <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider text-[11px] select-none">
+                <th className="py-2 px-3 w-10 text-center">
                   <input
                     type="checkbox"
                     checked={allSelected}
@@ -268,10 +268,10 @@ export const TaskTableView: React.FC<TaskTableViewProps> = ({
                 </th>
                 <th
                   onClick={() => toggleSort('code')}
-                  className="py-3 px-3 w-24 cursor-pointer hover:text-slate-900 whitespace-nowrap"
+                  className="py-2 px-3 w-28 cursor-pointer hover:text-slate-900 whitespace-nowrap"
                 >
                   <div className="flex items-center gap-1">
-                    <span>Mã việc</span>
+                    <span>MÃ VIỆC</span>
                     {sortField === 'code' ? (
                       sortOrder === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
                     ) : (
@@ -281,10 +281,10 @@ export const TaskTableView: React.FC<TaskTableViewProps> = ({
                 </th>
                 <th
                   onClick={() => toggleSort('department')}
-                  className="py-3 px-3 w-36 cursor-pointer hover:text-slate-900 whitespace-nowrap"
+                  className="py-2 px-3 w-36 cursor-pointer hover:text-slate-900 whitespace-nowrap"
                 >
                   <div className="flex items-center gap-1">
-                    <span>Đơn vị chủ trì</span>
+                    <span>ĐƠN VỊ CHỦ TRÌ</span>
                     {sortField === 'department' ? (
                       sortOrder === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
                     ) : (
@@ -292,14 +292,14 @@ export const TaskTableView: React.FC<TaskTableViewProps> = ({
                     )}
                   </div>
                 </th>
-                <th className="py-3 px-3 min-w-[260px]">Nhiệm vụ & Chi tiết thực hiện</th>
-                <th className="py-3 px-3 w-28 whitespace-nowrap">Chỉ đạo</th>
+                <th className="py-2 px-3 min-w-[260px]">NHIỆM VỤ & CHI TIẾT THỰC HIỆN</th>
+                <th className="py-2 px-3 w-28 whitespace-nowrap">CHỈ ĐẠO</th>
                 <th
                   onClick={() => toggleSort('progress')}
-                  className="py-3 px-3 w-28 cursor-pointer hover:text-slate-900 whitespace-nowrap"
+                  className="py-2 px-3 w-28 cursor-pointer hover:text-slate-900 whitespace-nowrap"
                 >
                   <div className="flex items-center gap-1">
-                    <span>Tiến độ</span>
+                    <span>TIẾN ĐỘ</span>
                     {sortField === 'progress' ? (
                       sortOrder === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
                     ) : (
@@ -309,10 +309,10 @@ export const TaskTableView: React.FC<TaskTableViewProps> = ({
                 </th>
                 <th
                   onClick={() => toggleSort('status')}
-                  className="py-3 px-3 w-36 cursor-pointer hover:text-slate-900 whitespace-nowrap"
+                  className="py-2 px-3 w-36 cursor-pointer hover:text-slate-900 whitespace-nowrap"
                 >
                   <div className="flex items-center gap-1">
-                    <span>Trạng thái</span>
+                    <span>TRẠNG THÁI</span>
                     {sortField === 'status' ? (
                       sortOrder === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
                     ) : (
@@ -320,7 +320,7 @@ export const TaskTableView: React.FC<TaskTableViewProps> = ({
                     )}
                   </div>
                 </th>
-                <th className="py-3 px-3 w-16 text-right whitespace-nowrap">Thao tác</th>
+                <th className="py-2 px-3 w-16 text-right whitespace-nowrap">THAO TÁC</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -363,7 +363,7 @@ export const TaskTableView: React.FC<TaskTableViewProps> = ({
                       }`}
                     >
                       {/* Checkbox */}
-                      <td className="py-2.5 px-3 text-center">
+                      <td className="py-2 px-3 text-center">
                         <input
                           type="checkbox"
                           checked={isSelected}
@@ -372,21 +372,21 @@ export const TaskTableView: React.FC<TaskTableViewProps> = ({
                         />
                       </td>
 
-                      {/* Code */}
-                      <td className="py-2.5 px-3 whitespace-nowrap">
+                      {/* Code - Jira Issue Key Style */}
+                      <td className="py-2 px-3 whitespace-nowrap">
                         <button
                           onClick={() => onOpenDetail(item)}
-                          className="font-mono text-xs font-semibold text-blue-700 hover:text-blue-900 hover:underline tracking-tight cursor-pointer"
+                          className="font-mono text-[11px] font-bold text-blue-700 hover:text-blue-900 bg-blue-50/80 hover:bg-blue-100 px-2 py-0.5 rounded border border-blue-200/80 transition-colors cursor-pointer inline-block shadow-2xs"
                         >
                           {item.code}
                         </button>
-                        <div className="text-[10px] text-slate-400 font-mono">
+                        <div className="text-[10px] text-slate-400 font-mono mt-0.5">
                           Mục {item.itemNo}
                         </div>
                       </td>
 
                       {/* Department / Directive Classification */}
-                      <td className="py-2.5 px-3">
+                      <td className="py-2 px-3">
                         {tableTab === 'directives' ? (
                           <div>
                             <span className="inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">
@@ -398,21 +398,21 @@ export const TaskTableView: React.FC<TaskTableViewProps> = ({
                           </div>
                         ) : (
                           <div>
-                            <div className="font-medium text-slate-800">{item.department}</div>
+                            <div className="font-semibold text-slate-800 text-xs">{item.department}</div>
                             <div className="text-[11px] text-slate-400">{item.pageReference}</div>
                           </div>
                         )}
                       </td>
 
                       {/* Task Content, Milestone, Time & Collaborators */}
-                      <td className="py-2.5 px-3">
+                      <td className="py-2 px-3">
                         <p
                           onClick={() => onOpenDetail(item)}
-                          className="text-slate-900 font-medium leading-relaxed hover:text-blue-600 cursor-pointer"
+                          className="text-slate-900 font-medium leading-relaxed hover:text-blue-600 cursor-pointer text-xs"
                         >
                           {item.task}
                         </p>
-                        <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px]">
+                        <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px]">
                           {item.milestone && (
                             <div className="flex items-center gap-1 text-slate-500">
                               <span className="font-semibold text-slate-600">Mốc KQ:</span>
@@ -451,7 +451,7 @@ export const TaskTableView: React.FC<TaskTableViewProps> = ({
                       </td>
 
                       {/* Directed By (Shortened) */}
-                      <td className="py-2.5 px-3 text-slate-700 whitespace-nowrap">
+                      <td className="py-2 px-3 text-slate-700 whitespace-nowrap">
                         <span
                           className="inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200"
                           title={item.directedBy}
@@ -461,7 +461,7 @@ export const TaskTableView: React.FC<TaskTableViewProps> = ({
                       </td>
 
                       {/* Progress */}
-                      <td className="py-2.5 px-3">
+                      <td className="py-2 px-3">
                         <ProgressBar
                           progress={item.progress}
                           onChange={(newProgress) => onUpdateProgress(item.code, newProgress)}
@@ -469,7 +469,7 @@ export const TaskTableView: React.FC<TaskTableViewProps> = ({
                       </td>
 
                       {/* Status */}
-                      <td className="py-2.5 px-3">
+                      <td className="py-2 px-3">
                         <StatusIndicator
                           status={item.status}
                           onChange={(newStatus) => onUpdateStatus(item.code, newStatus)}
@@ -477,7 +477,7 @@ export const TaskTableView: React.FC<TaskTableViewProps> = ({
                       </td>
 
                       {/* Action Menu */}
-                      <td className="py-2.5 px-3 text-right relative">
+                      <td className="py-2 px-3 text-right relative">
                         <div className="flex items-center justify-end gap-1">
                           <button
                             onClick={() => onOpenDetail(item)}
