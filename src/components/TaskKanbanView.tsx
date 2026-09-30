@@ -9,11 +9,14 @@ import {
   PauseCircle,
   GripVertical,
   Plus,
-  Kanban
+  Kanban,
+  CornerDownRight,
+  Layers,
 } from 'lucide-react';
 
 interface TaskKanbanViewProps {
   tasks: TaskItem[];
+  allTasks?: TaskItem[];
   onUpdateStatus: (code: string, status: TaskStatus) => void;
   onUpdateProgress: (code: string, progress: number) => void;
   onOpenDetail: (task: TaskItem) => void;
@@ -35,6 +38,7 @@ interface ColumnConfig {
 
 export const TaskKanbanView: React.FC<TaskKanbanViewProps> = ({
   tasks,
+  allTasks,
   onUpdateStatus,
   onUpdateProgress,
   onOpenDetail,
@@ -215,14 +219,11 @@ export const TaskKanbanView: React.FC<TaskKanbanViewProps> = ({
                         <div className="flex items-center gap-1.5">
                           <GripVertical className="w-3.5 h-3.5 text-slate-300 group-hover:text-slate-500 cursor-grab" />
                           <div>
-                            <button
-                              onClick={() => onOpenDetail(task)}
-                              className="font-mono text-xs font-bold text-blue-700 hover:text-blue-900 hover:underline cursor-pointer"
-                            >
-                              {task.code}
-                            </button>
-                            <div className="text-[11px] text-slate-500 font-medium">
+                            <div className="text-xs font-bold text-slate-800">
                               {task.department}
+                            </div>
+                            <div className="text-[10px] text-slate-400 font-mono">
+                              Mục {task.itemNo}
                             </div>
                           </div>
                         </div>
@@ -243,14 +244,52 @@ export const TaskKanbanView: React.FC<TaskKanbanViewProps> = ({
                         </select>
                       </div>
 
-                      {/* Task Description */}
-                      <p
-                        onClick={() => onOpenDetail(task)}
-                        className="text-xs text-slate-900 font-medium line-clamp-3 leading-snug hover:text-blue-600 cursor-pointer"
-                        title={task.task}
-                      >
-                        {task.task}
-                      </p>
+                      {/* Hiển thị quan hệ Cha - Con */}
+                      {(() => {
+                        const parentTask = task.parentCode
+                          ? (allTasks || tasks).find((t) => t.code === task.parentCode)
+                          : null;
+                        const childCount = (allTasks || tasks).filter((t) => t.parentCode === task.code).length;
+
+                        return (
+                          <>
+                            {parentTask && (
+                              <div className="mb-1.5">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onOpenDetail(parentTask);
+                                  }}
+                                  className="inline-flex items-center gap-1 text-[10px] text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200/70 px-1.5 py-0.5 rounded font-medium max-w-full truncate cursor-pointer transition-colors"
+                                  title="Bấm để mở nhiệm vụ cha"
+                                >
+                                  <CornerDownRight className="w-2.5 h-2.5 text-blue-500 shrink-0" />
+                                  <span className="truncate">Thuộc: {parentTask.task}</span>
+                                </button>
+                              </div>
+                            )}
+
+                            {/* Task Description */}
+                            <p
+                              onClick={() => onOpenDetail(task)}
+                              className="text-xs text-slate-900 font-medium line-clamp-3 leading-snug hover:text-blue-600 cursor-pointer"
+                              title={task.task}
+                            >
+                              {task.task}
+                            </p>
+
+                            {childCount > 0 && (
+                              <div className="mt-1">
+                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded">
+                                  <Layers className="w-2.5 h-2.5 text-indigo-500" />
+                                  <span>{childCount} nhiệm vụ con</span>
+                                </span>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
 
                       {/* Milestone */}
                       {task.milestone && (

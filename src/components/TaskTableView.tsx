@@ -19,6 +19,8 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  CornerDownRight,
+  Layers,
 } from 'lucide-react';
 
 function getPaginationPages(current: number, total: number): (number | string)[] {
@@ -49,6 +51,7 @@ function formatExecutiveName(name: string): string {
 interface TaskTableViewProps {
   tasks: TaskItem[];
   generalDirectives?: TaskItem[];
+  allTasks?: TaskItem[];
   onUpdateStatus: (code: string, status: TaskStatus) => void;
   onUpdateProgress: (code: string, progress: number) => void;
   onOpenEdit: (task: TaskItem) => void;
@@ -65,6 +68,7 @@ type SortField = 'code' | 'department' | 'progress' | 'status' | 'itemNo';
 export const TaskTableView: React.FC<TaskTableViewProps> = ({
   tasks,
   generalDirectives = [],
+  allTasks,
   onUpdateStatus,
   onUpdateProgress,
   onOpenEdit,
@@ -77,7 +81,7 @@ export const TaskTableView: React.FC<TaskTableViewProps> = ({
 }) => {
   const [tableTab, setTableTab] = useState<'tasks' | 'directives'>('tasks');
   const [selectedCodes, setSelectedCodes] = useState<string[]>([]);
-  const [sortField, setSortField] = useState<SortField>('code');
+  const [sortField, setSortField] = useState<SortField>('itemNo');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [activeMenuCode, setActiveMenuCode] = useState<string | null>(null);
 
@@ -267,12 +271,12 @@ export const TaskTableView: React.FC<TaskTableViewProps> = ({
                   />
                 </th>
                 <th
-                  onClick={() => toggleSort('code')}
-                  className="py-2 px-3 w-28 cursor-pointer hover:text-slate-900 whitespace-nowrap"
+                  onClick={() => toggleSort('itemNo')}
+                  className="py-2 px-3 w-16 text-center cursor-pointer hover:text-slate-900 whitespace-nowrap"
                 >
-                  <div className="flex items-center gap-1">
-                    <span>MÃ VIỆC</span>
-                    {sortField === 'code' ? (
+                  <div className="flex items-center justify-center gap-1">
+                    <span>STT</span>
+                    {sortField === 'itemNo' ? (
                       sortOrder === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />
                     ) : (
                       <ArrowUpDown className="w-3 h-3 text-slate-400" />
@@ -372,17 +376,11 @@ export const TaskTableView: React.FC<TaskTableViewProps> = ({
                         />
                       </td>
 
-                      {/* Code - Jira Issue Key Style */}
-                      <td className="py-2 px-3 whitespace-nowrap">
-                        <button
-                          onClick={() => onOpenDetail(item)}
-                          className="font-mono text-[11px] font-bold text-blue-700 hover:text-blue-900 bg-blue-50/80 hover:bg-blue-100 px-2 py-0.5 rounded border border-blue-200/80 transition-colors cursor-pointer inline-block shadow-2xs"
-                        >
-                          {item.code}
-                        </button>
-                        <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                          Mục {item.itemNo}
-                        </div>
+                      {/* STT (Ẩn mã việc) */}
+                      <td className="py-2 px-3 text-center whitespace-nowrap">
+                        <span className="font-mono text-xs font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                          {item.itemNo}
+                        </span>
                       </td>
 
                       {/* Department / Directive Classification */}
@@ -406,12 +404,53 @@ export const TaskTableView: React.FC<TaskTableViewProps> = ({
 
                       {/* Task Content, Milestone, Time & Collaborators */}
                       <td className="py-2 px-3">
-                        <p
-                          onClick={() => onOpenDetail(item)}
-                          className="text-slate-900 font-medium leading-relaxed hover:text-blue-600 cursor-pointer text-xs"
-                        >
-                          {item.task}
-                        </p>
+                        {/* Quan hệ Cha - Con (hiển thị tên nhiệm vụ cha thay vì mã) */}
+                        {(() => {
+                          const parentTask = item.parentCode
+                            ? (allTasks || tasks).find((t) => t.code === item.parentCode)
+                            : null;
+                          const childCount = (allTasks || tasks).filter((t) => t.parentCode === item.code).length;
+
+                          return (
+                            <>
+                              {parentTask && (
+                                <div className="mb-1">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onOpenDetail(parentTask);
+                                    }}
+                                    className="inline-flex items-center gap-1 text-[11px] text-blue-700 bg-blue-50/90 hover:bg-blue-100 border border-blue-200/80 px-2 py-0.5 rounded font-medium transition-colors cursor-pointer group"
+                                    title="Bấm để xem nhiệm vụ cha"
+                                  >
+                                    <CornerDownRight className="w-3 h-3 text-blue-500 shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                                    <span className="font-semibold text-blue-900">Thuộc nhiệm vụ:</span>
+                                    <span className="max-w-[280px] sm:max-w-[380px] truncate underline">
+                                      {parentTask.task}
+                                    </span>
+                                  </button>
+                                </div>
+                              )}
+
+                              <p
+                                onClick={() => onOpenDetail(item)}
+                                className="text-slate-900 font-medium leading-relaxed hover:text-blue-600 cursor-pointer text-xs"
+                              >
+                                {item.task}
+                              </p>
+
+                              {childCount > 0 && (
+                                <div className="mt-1">
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded">
+                                    <Layers className="w-3 h-3 text-indigo-500" />
+                                    <span>{childCount} nhiệm vụ con</span>
+                                  </span>
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
                         <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px]">
                           {item.milestone && (
                             <div className="flex items-center gap-1 text-slate-500">
@@ -505,7 +544,7 @@ export const TaskTableView: React.FC<TaskTableViewProps> = ({
 
                           <button
                             onClick={() => {
-                              if (window.confirm(`Xác nhận xóa nhiệm vụ ${item.code}?`)) {
+                              if (window.confirm('Xác nhận xóa nhiệm vụ này?')) {
                                 onDelete(item.code);
                               }
                             }}

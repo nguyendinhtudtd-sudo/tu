@@ -1199,8 +1199,8 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
                 >
                   <div className="space-y-1.5 min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-mono font-bold text-xs text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded border border-blue-200">
-                        {task.code}
+                      <span className="font-mono font-bold text-xs text-slate-700 bg-slate-100 px-2.5 py-0.5 rounded border border-slate-200">
+                        Mục {task.itemNo}
                       </span>
                       <span className="text-xs font-semibold text-slate-800 bg-slate-100 px-2.5 py-0.5 rounded border border-slate-200">
                         {task.department}

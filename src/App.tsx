@@ -18,6 +18,7 @@ import { TaskDetailDrawer } from './components/TaskDetailDrawer';
 import { ImportExportModal } from './components/ImportExportModal';
 import { getTasks, syncTaskToSheet } from './services/n8nApi';
 import { ToastContainer, useToast } from './components/Toast';
+import { ChatBox } from './components/ChatBox';
 
 export default function App() {
   const [tasks, setTasks] = useState<TaskItem[]>(() => getStoredTasks());
@@ -218,16 +219,16 @@ export default function App() {
 
     if (taskToSync) {
       const task = taskToSync as TaskItem;
-      addToast('syncing', `Đang cập nhật trạng thái nhiệm vụ ${code}...`);
+      addToast('syncing', `Đang cập nhật trạng thái nhiệm vụ...`);
       syncTaskToSheet(task)
         .then(() => {
           removeSyncingToasts();
-          addToast('success', `Nhiệm vụ ${code}: chuyển sang "${newStatus}"`);
+          addToast('success', `Đã chuyển sang "${newStatus}"`);
         })
         .catch((error) => {
           removeSyncingToasts();
           console.error('Lỗi cập nhật trạng thái lên Google Sheets:', error);
-          addToast('error', `Lỗi đồng bộ trạng thái ${code}`, 'Thay đổi đã được lưu tạm trên máy');
+          addToast('error', `Lỗi đồng bộ trạng thái`, 'Thay đổi đã được lưu tạm trên máy');
         });
     }
   };
@@ -268,15 +269,15 @@ export default function App() {
       }
 
       debounceTimers.current[code] = setTimeout(async () => {
-        addToast('syncing', `Đang lưu tiến độ nhiệm vụ ${code}...`);
+        addToast('syncing', `Đang lưu tiến độ nhiệm vụ...`);
         try {
           await syncTaskToSheet(task);
           removeSyncingToasts();
-          addToast('success', `Đã lưu tiến độ ${task.progress}% cho nhiệm vụ ${code}`);
+          addToast('success', `Đã lưu tiến độ ${task.progress}%`);
         } catch (error) {
           removeSyncingToasts();
           console.error('Lỗi cập nhật tiến độ lên Google Sheets:', error);
-          addToast('error', `Lỗi đồng bộ nhiệm vụ ${code}`, 'Tiến độ đã được lưu tạm trên máy');
+          addToast('error', `Lỗi đồng bộ nhiệm vụ`, 'Tiến độ đã được lưu tạm trên máy');
         }
       }, 500);
     }
@@ -317,8 +318,8 @@ export default function App() {
     addToast(
       'syncing',
       isExisting
-        ? `Đang cập nhật nhiệm vụ ${taskWithTimestamp.code}...`
-        : `Đang thêm mới nhiệm vụ ${taskWithTimestamp.code}...`
+        ? `Đang cập nhật nhiệm vụ...`
+        : `Đang thêm mới nhiệm vụ...`
     );
 
     syncTaskToSheet(taskWithTimestamp)
@@ -327,8 +328,8 @@ export default function App() {
         addToast(
           'success',
           isExisting
-            ? `Đã cập nhật nhiệm vụ ${taskWithTimestamp.code}`
-            : `Đã thêm nhiệm vụ ${taskWithTimestamp.code} vào Sheet`
+            ? `Đã cập nhật nhiệm vụ thành công`
+            : `Đã thêm nhiệm vụ mới vào Sheet`
         );
       })
       .catch((error) => {
@@ -359,11 +360,11 @@ export default function App() {
     };
     setTasks((prev) => [duplicated, ...prev]);
 
-    addToast('syncing', `Đang sao chép nhiệm vụ ${duplicated.code}...`);
+    addToast('syncing', `Đang sao chép nhiệm vụ...`);
     syncTaskToSheet(duplicated)
       .then(() => {
         removeSyncingToasts();
-        addToast('success', `Đã tạo bản sao ${duplicated.code} trên Sheet`);
+        addToast('success', `Đã tạo bản sao trên Sheet`);
       })
       .catch((error) => {
         removeSyncingToasts();
@@ -386,16 +387,16 @@ export default function App() {
         status: 'Tạm hoãn',
         updatedAt: new Date().toISOString(),
       };
-      addToast('syncing', `Đang cập nhật trạng thái xóa ${code}...`);
+      addToast('syncing', `Đang cập nhật trạng thái xóa...`);
       syncTaskToSheet(softDeleted)
         .then(() => {
           removeSyncingToasts();
-          addToast('info', `Nhiệm vụ ${code} đã được chuyển sang "Tạm hoãn" trên Sheet`);
+          addToast('info', `Nhiệm vụ đã được chuyển sang "Tạm hoãn" trên Sheet`);
         })
         .catch((error) => {
           removeSyncingToasts();
           console.error('Lỗi cập nhật xóa trên Sheet:', error);
-          addToast('error', `Lỗi đồng bộ xóa nhiệm vụ ${code}`);
+          addToast('error', `Lỗi đồng bộ xóa nhiệm vụ`);
         });
     }
   };
@@ -541,6 +542,8 @@ export default function App() {
         }}
         onOpenImportExport={() => setIsImportExportModalOpen(true)}
         onResetData={handleResetToDefault}
+        tasks={tasks}
+        onOpenTaskDetail={(task) => setTaskForDetail(task)}
       />
 
       {/* Khối KPI tổng quan: CHỈ HIỂN THỊ Ở TAB DANH SÁCH BẢNG theo yêu cầu */}
@@ -573,6 +576,7 @@ export default function App() {
           <TaskTableView
             tasks={filteredTasks}
             generalDirectives={filteredGeneralDirectives}
+            allTasks={tasks}
             onUpdateStatus={handleUpdateStatus}
             onUpdateProgress={handleUpdateProgress}
             onOpenEdit={(task) => {
@@ -600,6 +604,7 @@ export default function App() {
         {viewMode === 'kanban' && (
           <TaskKanbanView
             tasks={filteredTasks}
+            allTasks={tasks}
             onUpdateStatus={handleUpdateStatus}
             onUpdateProgress={handleUpdateProgress}
             onOpenDetail={(task) => setTaskForDetail(task)}
@@ -619,6 +624,7 @@ export default function App() {
           <DepartmentGroupView
             tasks={filteredTasks}
             departments={filter.department ? [filter.department] : departments}
+            allTasks={tasks}
             onUpdateStatus={handleUpdateStatus}
             onUpdateProgress={handleUpdateProgress}
             onOpenDetail={(task) => setTaskForDetail(task)}
@@ -634,6 +640,7 @@ export default function App() {
           <ExecutiveGroupView
             tasks={filteredTasks}
             leaders={filter.directedBy ? [filter.directedBy] : leaders}
+            allTasks={tasks}
             onUpdateStatus={handleUpdateStatus}
             onUpdateProgress={handleUpdateProgress}
             onOpenDetail={(task) => setTaskForDetail(task)}
@@ -659,6 +666,8 @@ export default function App() {
       <TaskDetailDrawer
         task={taskForDetail}
         isOpen={Boolean(taskForDetail)}
+        allTasks={tasks}
+        onSelectTask={(task) => setTaskForDetail(task)}
         onClose={() => setTaskForDetail(null)}
         onUpdateStatus={handleUpdateStatus}
         onUpdateProgress={handleUpdateProgress}
@@ -684,6 +693,7 @@ export default function App() {
         leaders={leaders}
         nextCode={nextSuggestedCode}
         defaultDepartment={defaultDeptForNewTask}
+        tasks={tasks}
       />
 
       {/* Import / Export / Reset Modal */}
@@ -708,6 +718,9 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* Floating AI Chatbox for General Director */}
+      <ChatBox />
 
       {/* Toast Notification Container */}
       <ToastContainer toasts={toasts} onDismiss={removeToast} />

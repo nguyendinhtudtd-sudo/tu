@@ -11,6 +11,7 @@ interface TaskModalProps {
   leaders: string[];
   nextCode?: string;
   defaultDepartment?: string;
+  tasks?: TaskItem[];
 }
 
 export const TaskModal: React.FC<TaskModalProps> = ({
@@ -22,11 +23,14 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   leaders,
   nextCode = '09/2026-048',
   defaultDepartment = 'Phòng Tổng hợp',
+  tasks = [],
 }) => {
   const isEditing = Boolean(taskToEdit);
 
   const [formData, setFormData] = useState<Partial<TaskItem>>({
     code: nextCode,
+    parentCode: '',
+    taskLevel: 'standalone',
     month: '09/2026',
     title: 'Thông báo kết luận họp giao ban trực tuyến tháng 9/2026',
     department: defaultDepartment,
@@ -95,7 +99,9 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     }
 
     onSave({
-      code: formData.code.trim(),
+      code: formData.code?.trim() || nextCode,
+      parentCode: formData.parentCode?.trim() || undefined,
+      taskLevel: formData.parentCode?.trim() ? 'child' : (formData.taskLevel || 'standalone'),
       month: formData.month?.trim() || '09/2026',
       title: formData.title?.trim() || 'Thông báo kết luận họp giao ban',
       department: formData.department.trim(),
@@ -119,11 +125,11 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-        {/* Header */}
+        {/* Header - Ẩn mã việc */}
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
           <div>
             <h2 className="text-base font-bold text-slate-900">
-              {isEditing ? `Chỉnh sửa nhiệm vụ [${taskToEdit?.code}]` : 'Thêm nhiệm vụ mới'}
+              {isEditing ? 'Chỉnh sửa nhiệm vụ' : 'Thêm nhiệm vụ mới'}
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
               Theo dõi và cập nhật theo kết luận họp giao ban VNPD
@@ -146,20 +152,33 @@ export const TaskModal: React.FC<TaskModalProps> = ({
               </div>
             )}
 
-            {/* Grid 1: Mã việc & Tháng & Số TT */}
+            {/* Grid 1: Thuộc nhiệm vụ cha (ẩn mã việc) & Kỳ tháng & Số TT */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block font-semibold text-slate-700 mb-1">
-                  Mã nhiệm vụ <span className="text-rose-500">*</span>
+                  Thuộc nhiệm vụ cha
                 </label>
-                <input
-                  type="text"
-                  value={formData.code || ''}
-                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
-                  placeholder="09/2026-001"
-                  required
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-600 font-mono"
-                />
+                <select
+                  value={formData.parentCode || ''}
+                  onChange={(e) => {
+                    const pCode = e.target.value;
+                    setFormData({
+                      ...formData,
+                      parentCode: pCode,
+                      taskLevel: pCode ? 'child' : 'standalone',
+                    });
+                  }}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-600 text-xs"
+                >
+                  <option value="">-- Không (Nhiệm vụ độc lập) --</option>
+                  {tasks
+                    .filter((t) => !taskToEdit || t.code !== taskToEdit.code)
+                    .map((t) => (
+                      <option key={t.code} value={t.code}>
+                        [{t.department}] {t.task.length > 50 ? t.task.slice(0, 50) + '...' : t.task}
+                      </option>
+                    ))}
+                </select>
               </div>
 
               <div>

@@ -193,7 +193,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                 <table className="w-full border-collapse border border-slate-300 text-[11px]">
                   <thead>
                     <tr className="bg-slate-100 font-semibold text-slate-700 text-center">
-                      <th className="border border-slate-300 py-1.5 px-2 w-10">Mã</th>
+                      <th className="border border-slate-300 py-1.5 px-2 w-10">STT</th>
                       <th className="border border-slate-300 py-1.5 px-3 text-left">Nội dung nhiệm vụ</th>
                       <th className="border border-slate-300 py-1.5 px-2 text-left w-36">Mốc kết quả</th>
                       <th className="border border-slate-300 py-1.5 px-2 text-left w-28">Chỉ đạo</th>
@@ -206,7 +206,7 @@ export const ReportView: React.FC<ReportViewProps> = ({
                     {deptTasks.map((t) => (
                       <tr key={t.code} className="hover:bg-slate-50">
                         <td className="border border-slate-300 py-1.5 px-2 text-center font-medium">
-                          {t.code}
+                          {t.itemNo}
                         </td>
                         <td className="border border-slate-300 py-1.5 px-3 leading-relaxed">
                           {t.task}

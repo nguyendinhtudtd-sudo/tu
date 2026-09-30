@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TaskItem, TaskStatus, TaskNote } from '../types/task';
 import { StatusIndicator } from './StatusIndicator';
 import { ProgressBar } from './ProgressBar';
+import { TaskCommentSection } from './TaskCommentSection';
+import { getTaskComments } from '../services/n8nApi';
 import {
   X,
   Edit2,
@@ -17,7 +19,9 @@ import {
   Plus,
   MessageSquare,
   CheckCircle2,
-  Share2
+  Share2,
+  CornerDownRight,
+  Layers,
 } from 'lucide-react';
 
 interface TaskDetailDrawerProps {
@@ -30,6 +34,8 @@ interface TaskDetailDrawerProps {
   onDeleteNote: (code: string, noteId: string) => void;
   onOpenEdit: (task: TaskItem) => void;
   onDelete: (code: string) => void;
+  allTasks?: TaskItem[];
+  onSelectTask?: (task: TaskItem) => void;
 }
 
 export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
@@ -42,11 +48,27 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   onDeleteNote,
   onOpenEdit,
   onDelete,
+  allTasks,
+  onSelectTask,
 }) => {
   const [newNote, setNewNote] = useState('');
   const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<'details' | 'comments'>('details');
+  const [commentCount, setCommentCount] = useState<number>(0);
+
+  useEffect(() => {
+    setActiveTab('details');
+    if (task?.code) {
+      getTaskComments(task.code)
+        .then((cmts) => setCommentCount(cmts.length))
+        .catch(() => setCommentCount(0));
+    }
+  }, [task?.code]);
 
   if (!isOpen || !task) return null;
+
+  const parentTask = task.parentCode && allTasks ? allTasks.find((t) => t.code === task.parentCode) : null;
+  const childTasks = allTasks ? allTasks.filter((t) => t.parentCode === task.code) : [];
 
   const handleAddNoteSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +78,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
   };
 
   const handleCopySummary = () => {
-    const text = `[${task.code}] ${task.task}\n- Đơn vị: ${task.department}\n- Chỉ đạo: ${task.directedBy}\n- Mốc: ${task.milestone || 'N/A'}\n- Tiến độ: ${task.progress}% (${task.status})`;
+    const text = `${task.task}\n- Đơn vị: ${task.department}\n- Chỉ đạo: ${task.directedBy}\n- Mốc: ${task.milestone || 'N/A'}\n- Tiến độ: ${task.progress}% (${task.status})`;
     navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -67,12 +89,22 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
       <div
         className="w-full max-w-xl bg-white h-full shadow-2xl flex flex-col border-l border-slate-200 animate-in slide-in-from-right duration-200"
       >
-        {/* Top bar of drawer */}
+        {/* Top bar of drawer - Ẩn mã việc, hiển thị vai trò cha/con */}
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/60">
-          <div className="flex items-center gap-2">
-            <span className="font-mono text-sm font-bold text-blue-700">{task.code}</span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm font-bold text-slate-800">Chi tiết nhiệm vụ</span>
             <span className="text-slate-400">·</span>
             <span className="text-xs text-slate-500 font-medium">Mục {task.itemNo}</span>
+            {task.parentCode && (
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                Nhiệm vụ con
+              </span>
+            )}
+            {childTasks.length > 0 && (
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+                Nhiệm vụ cha ({childTasks.length} con)
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-1.5">
@@ -98,7 +130,7 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
 
             <button
               onClick={() => {
-                if (window.confirm(`Xác nhận xóa nhiệm vụ ${task.code}?`)) {
+                if (window.confirm('Xác nhận xóa nhiệm vụ này?')) {
                   onDelete(task.code);
                   onClose();
                 }
@@ -120,8 +152,68 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
           </div>
         </div>
 
+        {/* Navigation Tabs: Chi tiết & Tiến độ vs Trao đổi */}
+        <div className="flex border-b border-slate-200 bg-white px-6 shrink-0">
+          <button
+            type="button"
+            onClick={() => setActiveTab('details')}
+            className={`py-2.5 px-3 text-xs font-semibold border-b-2 flex items-center gap-1.5 cursor-pointer transition-colors ${
+              activeTab === 'details'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>Chi tiết & Nhật ký</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('comments')}
+            className={`py-2.5 px-3 text-xs font-semibold border-b-2 flex items-center gap-1.5 cursor-pointer transition-colors ${
+              activeTab === 'comments'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span>Trao đổi / Bình luận</span>
+            {commentCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700">
+                {commentCount}
+              </span>
+            )}
+          </button>
+        </div>
+
         {/* Content Body */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 text-xs">
+        {activeTab === 'comments' ? (
+          <div className="flex-1 overflow-hidden flex flex-col">
+            <TaskCommentSection
+              task={task}
+              onCommentCountChange={setCommentCount}
+            />
+          </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto p-6 space-y-5 text-xs">
+            {/* Liên kết đến nhiệm vụ cha nếu là task con */}
+            {parentTask && (
+            <div className="p-3 bg-blue-50/70 border border-blue-200/80 rounded-xl">
+              <span className="text-[11px] font-semibold text-blue-900 block mb-1">
+                Thuộc nhiệm vụ:
+              </span>
+              <button
+                type="button"
+                onClick={() => onSelectTask && onSelectTask(parentTask)}
+                className="text-left font-medium text-xs text-blue-700 hover:text-blue-900 hover:underline cursor-pointer flex items-start gap-1.5 transition-colors group"
+                title="Bấm để mở nhiệm vụ cha"
+              >
+                <CornerDownRight className="w-3.5 h-3.5 text-blue-500 shrink-0 mt-0.5 group-hover:translate-x-0.5 transition-transform" />
+                <span className="line-clamp-2 leading-relaxed">{parentTask.task}</span>
+              </button>
+            </div>
+          )}
+
           {/* Title & Document Context */}
           <div>
             <div className="text-[11px] text-slate-500 font-medium mb-1">
@@ -129,6 +221,60 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
             </div>
             <h2 className="text-base font-bold text-slate-900 leading-snug">{task.task}</h2>
           </div>
+
+          {/* Danh sách nhiệm vụ con liên quan nếu là task cha */}
+          {childTasks.length > 0 && (
+            <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-slate-800 flex items-center gap-1.5 text-xs">
+                  <Layers className="w-4 h-4 text-indigo-600" />
+                  <span>Nhiệm vụ con liên quan ({childTasks.length})</span>
+                </span>
+                <span className="text-[10px] text-slate-500 font-medium">
+                  {childTasks.filter((c) => c.status === 'Hoàn thành').length}/{childTasks.length} hoàn thành
+                </span>
+              </div>
+              <div className="space-y-1.5 pt-1">
+                {childTasks.map((child) => (
+                  <div
+                    key={child.code}
+                    onClick={() => onSelectTask && onSelectTask(child)}
+                    className="p-2.5 bg-white border border-slate-200/80 hover:border-blue-300 rounded-lg cursor-pointer transition-all hover:shadow-2xs group flex items-start justify-between gap-3"
+                    title="Bấm để xem chi tiết nhiệm vụ con"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-slate-800 group-hover:text-blue-700 text-xs leading-snug">
+                        {child.task}
+                      </p>
+                      <div className="mt-1 flex items-center gap-2 text-[10px] text-slate-500">
+                        <span>{child.department}</span>
+                        {child.directedBy && (
+                          <>
+                            <span>·</span>
+                            <span>{child.directedBy}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      <span className="font-mono text-[11px] font-bold text-blue-600">
+                        {child.progress}%
+                      </span>
+                      <span
+                        className={`text-[9px] px-1.5 py-0.5 rounded font-medium ${
+                          child.status === 'Hoàn thành'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : 'bg-slate-100 text-slate-600'
+                        }`}
+                      >
+                        {child.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Quick Status & Progress Control */}
           <div className="p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-3">
@@ -336,27 +482,57 @@ export const TaskDetailDrawer: React.FC<TaskDetailDrawerProps> = ({
                 })
               )}
             </div>
+
+            {/* Quick access to Trao đổi / Thảo luận */}
+            <div className="p-3.5 bg-blue-50/60 border border-blue-200/70 rounded-xl flex items-center justify-between mt-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-blue-600/10 text-blue-600 flex items-center justify-center shrink-0">
+                  <MessageSquare className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="font-semibold text-slate-800 text-xs">
+                    Khu vực Trao đổi / Bình luận
+                  </div>
+                  <div className="text-[11px] text-slate-500">
+                    {commentCount > 0
+                      ? `${commentCount} trao đổi đã ghi nhận`
+                      : 'Chưa có trao đổi nào'}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveTab('comments')}
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
+              >
+                <span>Mở thảo luận</span>
+                <CornerDownRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
         </div>
+        )}
 
-        {/* Drawer Footer */}
-        <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
-          <div className="text-[11px] text-slate-400">
-            {task.updatedAt
-              ? `Cập nhật: ${new Date(task.updatedAt).toLocaleDateString('vi-VN')}`
-              : 'Dữ liệu giao ban tháng 09/2026'}
+        {/* Drawer Footer (Chỉ hiển thị ở tab Chi tiết) */}
+        {activeTab === 'details' && (
+          <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+            <div className="text-[11px] text-slate-400">
+              {task.updatedAt
+                ? `Cập nhật: ${new Date(task.updatedAt).toLocaleDateString('vi-VN')}`
+                : 'Dữ liệu giao ban tháng 09/2026'}
+            </div>
+
+            <button
+              onClick={() => {
+                onClose();
+                onOpenEdit(task);
+              }}
+              className="px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors cursor-pointer"
+            >
+              Chỉnh sửa toàn diện
+            </button>
           </div>
-
-          <button
-            onClick={() => {
-              onClose();
-              onOpenEdit(task);
-            }}
-            className="px-3.5 py-1.5 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors cursor-pointer"
-          >
-            Chỉnh sửa toàn diện
-          </button>
-        </div>
+        )}
       </div>
     </div>
   );

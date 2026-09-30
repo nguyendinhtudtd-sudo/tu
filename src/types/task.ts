@@ -38,8 +38,12 @@ export function isGeneralDirective(dept?: string): boolean {
   );
 }
 
+export type TaskLevel = 'parent' | 'child' | 'standalone';
+
 export interface TaskItem {
   code: string;
+  parentCode?: string;
+  taskLevel?: TaskLevel;
   month: string;
   title: string;
   department: string;
@@ -69,4 +73,27 @@ export interface FilterState {
   month: string;
   sortBy: 'code' | 'department' | 'progress' | 'status' | 'itemNo';
   sortOrder: 'asc' | 'desc';
+}
+
+export interface AppNotification {
+  notificationId: string;
+  recipientEmail: string;
+  actorName: string;
+  taskCode?: string;
+  taskTitle?: string;
+  type?: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface TaskComment {
+  commentId: string;
+  taskCode: string;
+  authorName: string;
+  authorEmail: string;
+  content: string;
+  parentId?: string;
+  mentions?: string[];
+  createdAt: string;
 }

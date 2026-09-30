@@ -1,6 +1,7 @@
 import React from 'react';
-import { ViewMode } from '../types/task';
+import { ViewMode, TaskItem } from '../types/task';
 import { Plus, Download, LayoutGrid, Table, Kanban, Building2, UserCheck } from 'lucide-react';
+import { NotificationCenter } from './NotificationCenter';
 
 interface HeaderProps {
   viewMode: ViewMode;
@@ -8,6 +9,8 @@ interface HeaderProps {
   onOpenNewTask: () => void;
   onOpenImportExport: () => void;
   onResetData: () => void;
+  tasks?: TaskItem[];
+  onOpenTaskDetail?: (task: TaskItem) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -15,6 +18,8 @@ export const Header: React.FC<HeaderProps> = ({
   onViewModeChange,
   onOpenNewTask,
   onOpenImportExport,
+  tasks = [],
+  onOpenTaskDetail,
 }) => {
   return (
     <header className="border-b border-slate-200 bg-white sticky top-0 z-30 shadow-2xs print:hidden">
@@ -99,8 +104,15 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </nav>
 
-        {/* VÙNG 3 (BÊN PHẢI): Dữ liệu JSON/CSV (Secondary) + + Thêm nhiệm vụ (Primary) */}
+        {/* VÙNG 3 (BÊN PHẢI): Notification Center + Dữ liệu JSON/CSV (Secondary) + + Thêm nhiệm vụ (Primary) */}
         <div className="flex items-center justify-end gap-2.5">
+          {/* Notification Center */}
+          <NotificationCenter
+            email="tund@vnpd.vn"
+            tasks={tasks}
+            onOpenTaskDetail={onOpenTaskDetail}
+          />
+
           {/* Nút Secondary: Dữ liệu JSON/CSV */}
           <button
             onClick={onOpenImportExport}

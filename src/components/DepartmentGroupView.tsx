@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { TaskItem, TaskStatus } from '../types/task';
 import { ProgressBar } from './ProgressBar';
 import { StatusIndicator } from './StatusIndicator';
-import { Building2, ChevronDown, ChevronRight, Plus, CheckCircle2 } from 'lucide-react';
+import { Building2, ChevronDown, ChevronRight, Plus, CheckCircle2, CornerDownRight, Layers } from 'lucide-react';
 
 interface DepartmentGroupViewProps {
   tasks: TaskItem[];
   departments: string[];
+  allTasks?: TaskItem[];
   onUpdateStatus: (code: string, status: TaskStatus) => void;
   onUpdateProgress: (code: string, progress: number) => void;
   onOpenDetail: (task: TaskItem) => void;
@@ -17,6 +18,7 @@ interface DepartmentGroupViewProps {
 export const DepartmentGroupView: React.FC<DepartmentGroupViewProps> = ({
   tasks,
   departments,
+  allTasks,
   onUpdateStatus,
   onUpdateProgress,
   onOpenDetail,
@@ -142,33 +144,69 @@ export const DepartmentGroupView: React.FC<DepartmentGroupViewProps> = ({
                     >
                       {/* Left: Code & Task Description */}
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <button
-                            onClick={() => onOpenDetail(task)}
-                            className="font-mono text-xs font-semibold text-blue-600 hover:underline cursor-pointer"
-                          >
-                            {task.code}
-                          </button>
-                          <span className="text-slate-400">·</span>
-                          <span className="text-[11px] text-slate-500">
-                            Chỉ đạo: {task.directedBy}
-                          </span>
-                          {task.pageReference && (
-                            <>
-                              <span className="text-slate-400">·</span>
-                              <span className="text-[11px] text-slate-400">
-                                {task.pageReference}
-                              </span>
-                            </>
-                          )}
-                        </div>
+                        {/* Quan hệ Cha - Con (hiển thị tên nhiệm vụ cha thay vì mã) */}
+                        {(() => {
+                          const parentTask = task.parentCode
+                            ? (allTasks || tasks).find((t) => t.code === task.parentCode)
+                            : null;
+                          const childCount = (allTasks || tasks).filter((t) => t.parentCode === task.code).length;
 
-                        <p
-                          onClick={() => onOpenDetail(task)}
-                          className="text-slate-900 font-medium leading-relaxed hover:text-blue-600 cursor-pointer"
-                        >
-                          {task.task}
-                        </p>
+                          return (
+                            <>
+                              {parentTask && (
+                                <div className="mb-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onOpenDetail(parentTask);
+                                    }}
+                                    className="inline-flex items-center gap-1 text-[11px] text-blue-700 bg-blue-50/90 hover:bg-blue-100 border border-blue-200/80 px-2 py-0.5 rounded font-medium transition-colors cursor-pointer group"
+                                    title="Bấm để xem nhiệm vụ cha"
+                                  >
+                                    <CornerDownRight className="w-3 h-3 text-blue-500 shrink-0 group-hover:translate-x-0.5 transition-transform" />
+                                    <span className="font-semibold text-blue-900">Thuộc nhiệm vụ:</span>
+                                    <span className="max-w-[320px] truncate underline">{parentTask.task}</span>
+                                  </button>
+                                </div>
+                              )}
+
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-mono text-xs font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                                  Mục {task.itemNo}
+                                </span>
+                                <span className="text-slate-400">·</span>
+                                <span className="text-[11px] text-slate-500">
+                                  Chỉ đạo: {task.directedBy}
+                                </span>
+                                {task.pageReference && (
+                                  <>
+                                    <span className="text-slate-400">·</span>
+                                    <span className="text-[11px] text-slate-400">
+                                      {task.pageReference}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+
+                              <p
+                                onClick={() => onOpenDetail(task)}
+                                className="text-slate-900 font-medium leading-relaxed hover:text-blue-600 cursor-pointer"
+                              >
+                                {task.task}
+                              </p>
+
+                              {childCount > 0 && (
+                                <div className="mt-1">
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded">
+                                    <Layers className="w-3 h-3 text-indigo-500" />
+                                    <span>{childCount} nhiệm vụ con</span>
+                                  </span>
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
 
                         {task.milestone && (
                           <div className="mt-1 text-[11px] text-slate-500">

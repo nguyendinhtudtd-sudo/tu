@@ -15,7 +15,8 @@ export const INITIAL_TASKS: TaskItem[] = [
     milestone: "Ban hành dự thảo Phân phối chế độ an toàn điện",
     status: "Chưa cập nhật",
     progress: 0,
-    pageReference: "Phụ lục - trang 1"
+    pageReference: "Phụ lục - trang 1",
+    taskLevel: "parent"
   },
   {
     code: "09/2026-002",
@@ -31,7 +32,9 @@ export const INITIAL_TASKS: TaskItem[] = [
     milestone: "Hoàn thành rà soát, đối chiếu dữ liệu trên VssID",
     status: "Chưa cập nhật",
     progress: 0,
-    pageReference: "Phụ lục - trang 1"
+    pageReference: "Phụ lục - trang 1",
+    parentCode: "09/2026-001",
+    taskLevel: "child"
   },
   {
     code: "09/2026-003",
