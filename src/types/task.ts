@@ -97,3 +97,12 @@ export interface TaskComment {
   mentions?: string[];
   createdAt: string;
 }
+
+export interface AppUser {
+  userId: string;
+  fullName: string;
+  email: string;
+  department: string;
+  role?: string;
+  isActive: boolean;
+}

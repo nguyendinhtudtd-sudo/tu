@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { TaskItem, TaskComment } from '../types/task';
-import { getTaskComments, postTaskComment } from '../services/n8nApi';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { TaskItem, TaskComment, AppUser } from '../types/task';
+import { getTaskComments, postTaskComment, getUsers } from '../services/n8nApi';
 import {
   Send,
   CornerDownRight,
@@ -105,6 +105,15 @@ function renderCommentContent(content: string) {
   );
 }
 
+// Bỏ dấu tiếng Việt để tìm kiếm linh hoạt
+function removeVietnameseTones(str: string): string {
+  return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D');
+}
+
 export const TaskCommentSection: React.FC<TaskCommentSectionProps> = ({
   task,
   currentUser = DEFAULT_USER,
@@ -120,8 +129,72 @@ export const TaskCommentSection: React.FC<TaskCommentSectionProps> = ({
     authorName: string;
   } | null>(null);
 
+  // Danh sách users & trạng thái @mention
+  const [users, setUsers] = useState<AppUser[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const usersLoadedRef = useRef(false);
+
+  const [showMentionDropdown, setShowMentionDropdown] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [mentionStartIndex, setMentionStartIndex] = useState(-1);
+  const [highlightedUserIndex, setHighlightedUserIndex] = useState(0);
+
+  // Bản đồ lưu trữ người dùng đã được mention: fullName -> email
+  const mentionUsersMap = useRef<Map<string, string>>(new Map());
+
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const commentsContainerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Tải danh sách người dùng từ API n8n
+  const fetchUsers = useCallback(async (force = false) => {
+    console.log('[TaskCommentSection] fetchUsers() được gọi, force =', force, 'users.length =', users.length);
+    if (usersLoadedRef.current && users.length > 0 && !force) {
+      console.log('[TaskCommentSection] Đã có users trong cache, bỏ qua gọi lại API.');
+      return;
+    }
+    setLoadingUsers(true);
+    try {
+      const data = await getUsers();
+      // Chỉ hiển thị user có isActive = true (đã chuẩn hóa cả boolean true lẫn string "TRUE")
+      const activeUsers = data.filter((u) => u.isActive);
+      console.log('[TaskCommentSection] activeUsers sau khi lọc isActive:', activeUsers);
+      setUsers(activeUsers);
+      if (activeUsers.length > 0) {
+        usersLoadedRef.current = true;
+      }
+    } catch (err) {
+      console.error('[TaskCommentSection] Lỗi khi tải danh sách người dùng:', err);
+    } finally {
+      setLoadingUsers(false);
+    }
+  }, [users.length]);
+
+  // Tự động tải danh sách người dùng ngay khi mount để sẵn sàng khi gõ @
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
+  // Đóng dropdown khi click ra ngoài
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node) &&
+        textareaRef.current &&
+        !textareaRef.current.contains(event.target as Node)
+      ) {
+        setShowMentionDropdown(false);
+      }
+    }
+
+    if (showMentionDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showMentionDropdown]);
 
   // Tải danh sách comment từ n8n webhook
   const loadComments = useCallback(
@@ -152,11 +225,100 @@ export const TaskCommentSection: React.FC<TaskCommentSectionProps> = ({
     loadComments(false);
   }, [loadComments]);
 
+  // Lọc danh sách người dùng theo truy vấn sau ký tự @
+  const filteredUsers = useMemo(() => {
+    const trimmedQuery = mentionQuery.trim();
+    // Khi người dùng chỉ gõ @ (truy vấn rỗng), hiển thị toàn bộ user đang active
+    if (!trimmedQuery) {
+      return users;
+    }
+
+    // Khi gõ tiếp tên mới lọc theo fullName (hỗ trợ cả có dấu và không dấu)
+    const q = trimmedQuery.toLowerCase();
+    const qNoTone = removeVietnameseTones(q);
+
+    return users.filter((u) => {
+      const name = u.fullName.toLowerCase();
+      const nameNoTone = removeVietnameseTones(name);
+      return name.includes(q) || nameNoTone.includes(qNoTone);
+    });
+  }, [users, mentionQuery]);
+
+  // Xử lý thay đổi văn bản trong textarea & kiểm tra trigger @
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newText = e.target.value;
+    const cursor = e.target.selectionStart;
+    setContent(newText);
+
+    const textBeforeCursor = newText.slice(0, cursor);
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+
+    if (lastAtIndex !== -1) {
+      const charBeforeAt = lastAtIndex > 0 ? textBeforeCursor[lastAtIndex - 1] : ' ';
+      const isValidPrefix = /\s/.test(charBeforeAt) || lastAtIndex === 0;
+      const query = textBeforeCursor.slice(lastAtIndex + 1);
+      const hasNewline = /\n/.test(query);
+
+      if (isValidPrefix && !hasNewline && query.length < 30) {
+        setMentionQuery(query);
+        setMentionStartIndex(lastAtIndex);
+        setShowMentionDropdown(true);
+        setHighlightedUserIndex(0);
+        fetchUsers();
+        return;
+      }
+    }
+
+    setShowMentionDropdown(false);
+    setMentionQuery('');
+    setMentionStartIndex(-1);
+  };
+
+  // Chọn người dùng từ danh sách gợi ý
+  const handleSelectUser = (user: AppUser) => {
+    if (mentionStartIndex === -1 || !textareaRef.current) return;
+
+    const cursor = textareaRef.current.selectionStart;
+    const before = content.slice(0, mentionStartIndex);
+    const after = content.slice(cursor);
+    const mentionText = `@${user.fullName} `;
+    const nextContent = `${before}${mentionText}${after}`;
+
+    setContent(nextContent);
+
+    // Lưu email người dùng được nhắc đến vào mảng (không hiển thị email lên UI)
+    mentionUsersMap.current.set(user.fullName, user.email);
+
+    setShowMentionDropdown(false);
+    setMentionQuery('');
+    setMentionStartIndex(-1);
+
+    // Đặt lại con trỏ chuột ngay sau chuỗi @fullName vừa chèn
+    const nextCursor = before.length + mentionText.length;
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        textareaRef.current.setSelectionRange(nextCursor, nextCursor);
+      }
+    }, 0);
+  };
+
   // Gửi bình luận mới hoặc phản hồi
   const handleSend = async () => {
     if (!content.trim() || submitting || !task.code) return;
 
     const trimmedContent = content.trim();
+
+    // Thu thập danh sách email của tất cả user thực tế còn xuất hiện trong nội dung comment
+    const finalMentions: string[] = [];
+    mentionUsersMap.current.forEach((email, fullName) => {
+      if (trimmedContent.includes(`@${fullName}`)) {
+        if (!finalMentions.includes(email)) {
+          finalMentions.push(email);
+        }
+      }
+    });
+
     const commentId = `cmt-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
     const newComment: TaskComment = {
       commentId,
@@ -165,7 +327,7 @@ export const TaskCommentSection: React.FC<TaskCommentSectionProps> = ({
       authorEmail: currentUser.email,
       content: trimmedContent,
       parentId: replyingTo ? replyingTo.commentId : '',
-      mentions: [],
+      mentions: finalMentions,
       createdAt: new Date().toISOString(),
     };
 
@@ -180,6 +342,7 @@ export const TaskCommentSection: React.FC<TaskCommentSectionProps> = ({
     setContent('');
     const prevReplyingTo = replyingTo;
     setReplyingTo(null);
+    setShowMentionDropdown(false);
 
     // Cuộn xuống bình luận mới
     setTimeout(() => {
@@ -211,8 +374,37 @@ export const TaskCommentSection: React.FC<TaskCommentSectionProps> = ({
     }
   };
 
-  // Bắt phím: Enter gửi, Shift+Enter xuống dòng
+  // Bắt phím: điều hướng dropdown @mention, Enter gửi, Shift+Enter xuống dòng
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (showMentionDropdown && filteredUsers.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setHighlightedUserIndex((prev) => (prev + 1) % filteredUsers.length);
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setHighlightedUserIndex((prev) => (prev - 1 + filteredUsers.length) % filteredUsers.length);
+        return;
+      }
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        handleSelectUser(filteredUsers[highlightedUserIndex]);
+        return;
+      }
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        handleSelectUser(filteredUsers[highlightedUserIndex]);
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setShowMentionDropdown(false);
+        return;
+      }
+    }
+
+    // Khi không mở dropdown mention: Enter gửi, Shift+Enter xuống dòng
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -227,17 +419,33 @@ export const TaskCommentSection: React.FC<TaskCommentSectionProps> = ({
     });
     if (textareaRef.current) {
       textareaRef.current.focus();
-      // Nếu chưa có @mention người được trả lời, có thể chèn gợi ý
       setContent((prev) => (prev.includes(`@${authorName}`) ? prev : `@${authorName} `));
     }
   };
 
-  // Nút chèn @mention
+  // Nút chèn @mention thủ công
   const handleInsertMention = () => {
-    if (textareaRef.current) {
-      textareaRef.current.focus();
-      setContent((prev) => (prev.endsWith(' ') || prev.length === 0 ? `${prev}@` : `${prev} @`));
-    }
+    if (!textareaRef.current) return;
+    const cursor = textareaRef.current.selectionStart;
+    const before = content.slice(0, cursor);
+    const after = content.slice(cursor);
+    const prefix = before.length === 0 || /\s$/.test(before) ? '@' : ' @';
+    const nextContent = `${before}${prefix}${after}`;
+    const newCursor = before.length + prefix.length;
+
+    setContent(nextContent);
+    setMentionStartIndex(newCursor - 1);
+    setMentionQuery('');
+    setShowMentionDropdown(true);
+    setHighlightedUserIndex(0);
+    fetchUsers();
+
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        textareaRef.current.setSelectionRange(newCursor, newCursor);
+      }
+    }, 0);
   };
 
   // Cấu trúc phân cấp: Bình luận gốc (root) và câu trả lời lồng vào 1 cấp
@@ -247,11 +455,9 @@ export const TaskCommentSection: React.FC<TaskCommentSectionProps> = ({
   // Gom các reply theo comment gốc
   comments.forEach((c) => {
     if (c.parentId && c.parentId !== '') {
-      // Tìm xem parentId là root comment hay một reply khác
       let targetRootId = c.parentId;
       const isDirectRoot = rootComments.some((r) => r.commentId === c.parentId);
       if (!isDirectRoot) {
-        // Nếu c.parentId là một reply, tìm root cha của reply đó
         const directParent = comments.find((item) => item.commentId === c.parentId);
         if (directParent && directParent.parentId) {
           targetRootId = directParent.parentId;
@@ -415,7 +621,7 @@ export const TaskCommentSection: React.FC<TaskCommentSectionProps> = ({
       </div>
 
       {/* Ô nhập bình luận cố định phía dưới */}
-      <div className="p-4 bg-white border-t border-slate-200 shrink-0 shadow-xs">
+      <div className="p-4 bg-white border-t border-slate-200 shrink-0 shadow-xs relative">
         {/* Banner hiển thị đang trả lời ai */}
         {replyingTo && (
           <div className="mb-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg flex items-center justify-between text-xs animate-in fade-in duration-150">
@@ -436,18 +642,99 @@ export const TaskCommentSection: React.FC<TaskCommentSectionProps> = ({
           </div>
         )}
 
-        {/* Textarea nhập nội dung */}
-        <div className="border border-slate-200 rounded-xl overflow-hidden focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600 transition-all bg-white">
+        {/* Khối textarea & Dropdown @Mention */}
+        <div className="relative border border-slate-200 rounded-xl focus-within:border-blue-600 focus-within:ring-1 focus-within:ring-blue-600 transition-all bg-white">
+          {/* Dropdown gợi ý @mention nổi phía trên ô nhập */}
+          {showMentionDropdown && (
+            <div
+              ref={dropdownRef}
+              className="absolute bottom-full mb-2 left-0 right-0 max-h-56 bg-white rounded-xl shadow-xl border border-slate-200 z-50 overflow-hidden flex flex-col animate-in fade-in slide-in-from-bottom-2 duration-150"
+            >
+              {/* Header của dropdown mention */}
+              <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-100 text-[11px] font-semibold text-slate-600">
+                <div className="flex items-center gap-1.5">
+                  <AtSign className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Gợi ý nhắc đến (@mention)</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowMentionDropdown(false)}
+                  className="text-slate-400 hover:text-slate-600 p-0.5 rounded cursor-pointer"
+                  title="Đóng gợi ý"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Danh sách người dùng (chỉ hiển thị isActive = true, không hiển thị email) */}
+              <div className="overflow-y-auto max-h-44 divide-y divide-slate-100">
+                {loadingUsers ? (
+                  <div className="flex items-center justify-center py-4 text-slate-400 text-xs gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                    <span>Đang tải danh sách người dùng...</span>
+                  </div>
+                ) : filteredUsers.length === 0 ? (
+                  <div className="p-3 text-center text-xs text-slate-400">
+                    {users.length === 0 ? (
+                      <div className="flex flex-col items-center gap-1.5 py-1">
+                        <span>Chưa có dữ liệu thành viên đang hoạt động</span>
+                        <button
+                          type="button"
+                          onClick={() => fetchUsers(true)}
+                          className="text-blue-600 hover:underline text-[11px] font-medium cursor-pointer"
+                        >
+                          Thử tải lại
+                        </button>
+                      </div>
+                    ) : (
+                      'Không tìm thấy thành viên phù hợp'
+                    )}
+                  </div>
+                ) : (
+                  filteredUsers.map((user, idx) => (
+                    <div
+                      key={user.userId || user.email || idx}
+                      onClick={() => handleSelectUser(user)}
+                      onMouseEnter={() => setHighlightedUserIndex(idx)}
+                      className={`px-3 py-2 flex items-center justify-between gap-3 cursor-pointer transition-colors ${
+                        idx === highlightedUserIndex ? 'bg-blue-50/90 text-blue-900' : 'hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div
+                          className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-[9px] shrink-0 ${getAvatarColor(
+                            user.fullName
+                          )}`}
+                        >
+                          {getInitials(user.fullName)}
+                        </div>
+                        <span className="font-semibold text-xs text-slate-900 truncate">
+                          {user.fullName}
+                        </span>
+                      </div>
+
+                      {/* Hiển thị department (Không hiển thị email) */}
+                      <span className="text-[11px] text-slate-500 truncate max-w-[160px] shrink-0 text-right">
+                        {user.department || 'Thành viên'}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Textarea nhập nội dung */}
           <textarea
             ref={textareaRef}
             rows={2}
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={handleTextChange}
             onKeyDown={handleKeyDown}
             placeholder={
               replyingTo
                 ? `Nhập câu trả lời cho @${replyingTo.authorName}... (Enter để gửi, Shift+Enter xuống dòng)`
-                : 'Viết trao đổi / ý kiến... (Enter để gửi, Shift+Enter xuống dòng)'
+                : 'Viết trao đổi / ý kiến... Gõ @ để nhắc đến đồng nghiệp (Enter để gửi)'
             }
             className="w-full px-3.5 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none resize-none leading-relaxed"
           />
@@ -487,7 +774,7 @@ export const TaskCommentSection: React.FC<TaskCommentSectionProps> = ({
 
         {/* Thông tin tài khoản gửi */}
         <div className="mt-1.5 flex items-center justify-between text-[10px] text-slate-400 px-1">
-          <span>Gửi dưới tên: <span className="font-medium text-slate-600">{currentUser.name}</span> ({currentUser.email})</span>
+          <span>Gửi dưới tên: <span className="font-medium text-slate-600">{currentUser.name}</span></span>
           <span>{comments.length} trao đổi</span>
         </div>
       </div>

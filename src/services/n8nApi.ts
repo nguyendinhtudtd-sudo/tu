@@ -1,5 +1,5 @@
 import { isGeneralDirective } from '../types/task';
-import type { TaskItem, TaskNote, TaskStatus, TaskType, AppNotification, TaskComment } from '../types/task';
+import type { TaskItem, TaskNote, TaskStatus, TaskType, AppNotification, TaskComment, AppUser } from '../types/task';
 
 const N8N_WEBHOOK_URL = 'https://aihub.evngenco1.vn/n8n-app/webhook/308d5b2a-44dc-4936-926b-2f1b06d80611';
 const N8N_GET_TASKS_URL = 'https://aihub.evngenco1.vn/n8n-app/webhook/task';
@@ -12,6 +12,9 @@ const N8N_NOTIFICATIONS_URL = 'https://aihub.evngenco1.vn/n8n-app/webhook/notifi
 const N8N_NOTIFICATION_READ_URL = 'https://aihub.evngenco1.vn/n8n-app/webhook/notification-read';
 const N8N_TASK_COMMENT_URL = 'https://aihub.evngenco1.vn/n8n-app/webhook/task-comment';
 const N8N_TASK_COMMENTS_URL = 'https://aihub.evngenco1.vn/n8n-app/webhook/task-comments';
+export const N8N_USERS_URL =
+  (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_N8N_USERS_URL) ||
+  'https://aihub.evngenco1.vn/n8n-app/webhook/users';
 
 /**
  * Chuẩn hóa một dòng dữ liệu từ Sheet/n8n thành TaskItem an toàn và đầy đủ
@@ -465,5 +468,110 @@ export async function postTaskComment(comment: TaskComment): Promise<boolean> {
   } catch (error) {
     console.error('Lỗi khi gửi bình luận lên n8n webhook:', error);
     return false;
+  }
+}
+
+/**
+  * Chuẩn hóa thông tin người dùng từ n8n webhook / Google Sheets
+  * Hỗ trợ isActive cả dạng boolean (true) lẫn string ("TRUE", "true", "1")
+  */
+export function normalizeUser(raw: any): AppUser {
+  const item = raw?.json ? raw.json : raw || {};
+
+  const rawActive =
+    item.isActive !== undefined
+      ? item.isActive
+      : item.IsActive !== undefined
+      ? item.IsActive
+      : item.is_active !== undefined
+      ? item.is_active
+      : item.active !== undefined
+      ? item.active
+      : item.Active !== undefined
+      ? item.Active
+      : undefined;
+
+  let isActive = false;
+  if (rawActive === true || rawActive === 1) {
+    isActive = true;
+  } else if (typeof rawActive === 'string') {
+    const s = rawActive.trim().toLowerCase();
+    isActive = s === 'true' || s === '1' || s === 'yes' || s === 'active';
+  }
+
+  return {
+    userId: String(item.userId || item.user_id || item.UserId || item.id || item.ID || item.email || '').trim(),
+    fullName: String(
+      item.fullName ||
+      item.FullName ||
+      item.full_name ||
+      item.name ||
+      item.Name ||
+      item['Họ và tên'] ||
+      item['Họ tên'] ||
+      ''
+    ).trim(),
+    email: String(item.email || item.Email || item.mail || item.Mail || '').trim(),
+    department: String(
+      item.department ||
+      item.Department ||
+      item.dept ||
+      item.Dept ||
+      item['Phòng ban'] ||
+      item['Đơn vị'] ||
+      ''
+    ).trim(),
+    role: item.role ? String(item.role).trim() : undefined,
+    isActive,
+  };
+}
+
+/**
+  * Lấy danh sách người dùng từ n8n webhook
+  */
+export async function getUsers(): Promise<AppUser[]> {
+  try {
+    console.log('[n8nApi] Bắt đầu gọi GET danh sách người dùng tới URL:', N8N_USERS_URL);
+    const response = await fetch(N8N_USERS_URL, {
+      method: 'GET',
+      headers: {
+        Accept: 'application/json',
+      },
+    });
+
+    console.log('[n8nApi] Phản hồi HTTP Status từ Webhook /users:', response.status);
+
+    if (!response.ok) {
+      console.warn(`[n8nApi] Webhook users trả về HTTP ${response.status}`);
+      return [];
+    }
+
+    const data = await response.json();
+    console.log('[n8nApi] Dữ liệu JSON thô nhận được từ n8n:', data);
+
+    let rawList: any[] = [];
+    if (Array.isArray(data)) {
+      rawList = data;
+    } else if (data && Array.isArray((data as any).users)) {
+      rawList = (data as any).users;
+    } else if (data && Array.isArray((data as any).data)) {
+      rawList = (data as any).data;
+    } else if (data && Array.isArray((data as any).items)) {
+      rawList = (data as any).items;
+    } else if (data && Array.isArray((data as any).result)) {
+      rawList = (data as any).result;
+    } else if (data && Array.isArray((data as any).output)) {
+      rawList = (data as any).output;
+    }
+
+    const parsedUsers = rawList
+      .map(normalizeUser)
+      .filter((u) => Boolean(u.fullName || u.email));
+
+    console.log('[n8nApi] Danh sách user sau khi chuẩn hóa:', parsedUsers);
+    return parsedUsers;
+  } catch (error) {
+    console.error('[n8nApi] Lỗi khi tải danh sách users từ n8n webhook:', error);
+    return [];
   }
 }
